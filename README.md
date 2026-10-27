@@ -8,12 +8,12 @@ All data is **synthetic**. Customers, orders, requests and outcomes are illustra
 
 | Area | Where | What it does |
 | --- | --- | --- |
-| Request | `src/components/RequestPage.tsx` | Search-first duplicate check, paste-an-email intake, one form with the approval route and Finance-only fields shown up front |
+| Request | `src/components/RequestPage.tsx`, `server/triage.js` | Search-first duplicate check; pasted emails sorted into purchase order, enquiry or setup request (with reasons); only setup requests open the form, which shows the approval route and Finance-only fields |
 | Track | `src/components/Track.tsx` | Request list, stage progress bar, approve / ask for info / reject by role, simulated Teams approval card, auto-escalation after the SLA, audit history, simulated SAP B1 payload |
-| Regional view | `src/components/Regional.tsx` | Country × product table with 3-month growth, monthly demand and forecast, forecast accuracy check, prioritised risks and opportunities |
+| Regional view | `src/components/Regional.tsx` | Bubble map, country × product and entity × country tables, monthly demand, three forecast models backtested per country, early drop-off warnings, prioritised risks and opportunities |
 | Graph | `src/components/Graph.tsx` | Customer, product and country graph; duplicate evidence; read-only merge preview |
 | Rules | `src/components/Rules.tsx` | MDM team edits approval steps, required fields (incl. Finance-only) and the escalation time without IT; applies to new requests only |
-| Impact | `src/components/Impact.tsx` | Amy's 18-day request vs MasterGraph timeline, live counts from the data, adjustable savings estimate |
+| Impact | `src/components/Impact.tsx` | Amy's 18-day request vs MasterGraph, live counts, savings estimate, cost and payback, alternatives considered, adoption plan |
 | How it works | `src/App.tsx` | Process flow to SAP B1, what is not in version 1, demo data reset |
 | API | `server/index.js` | Express 5 routes listed below |
 | Domain rules | `server/domain.js` | Duplicate scoring, request validation, approval routing, redaction, simulated SAP payload |

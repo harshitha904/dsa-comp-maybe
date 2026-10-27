@@ -22,3 +22,14 @@
 @media (max-width:860px){.estimator{grid-template-columns:1fr}.lane{grid-template-columns:1fr}.axis{margin-left:0}.headline{gap:14px}.headline strong{font-size:26px}}
 .lane-caption{position:absolute;top:50%;transform:translateY(-50%);font-size:12px;font-weight:550;color:var(--green);white-space:nowrap}
 .axis span{white-space:nowrap}
+.cost-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:28px}
+.cost .plain{margin-top:6px;line-height:1.6}
+.table-wrap{overflow-x:auto}
+.options{width:100%;border-collapse:collapse;font-size:13px}
+.options th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+.options td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.options tr.chosen td{background:var(--green-soft)}.options tr.chosen td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+.adopt{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.adopt>div{display:flex;flex-direction:column;gap:6px}
+.adopt .n{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:600}
+@media (max-width:860px){.cost-grid{grid-template-columns:1fr}.adopt{grid-template-columns:1fr 1fr}}

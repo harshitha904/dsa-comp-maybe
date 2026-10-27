@@ -4,14 +4,17 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight, Minus } from 'lucide-react';
 import { api, countryCode, entities, errorText, fmt, monthLabel, type Customer } from '../api';
 import './Regional.css';
 
-type Forecast = {selectedForecast:number;selectedMae:number;selected:'baseline'|'candidate';baselineModel:string;candidateModel:string;backtest:{baselineMae:number;candidateMae:number;baselineMaePct:number;candidateMaePct:number;origins:number}};
+type Model = {id:string;name:string;mae:number|null;maePct:number|null;forecast:number};
+type Watch = {id:string;name:string;country:string;entity:string|null;last3Quantity:number;prior3Quantity:number;changePct:number;series:number[]};
+type Forecast = {models:Model[];selectedForecast:number;selectedMae:number;selected:'baseline'|'candidate'|'holt';baselineModel:string;candidateModel:string;backtest:{baselineMae:number;candidateMae:number;baselineMaePct:number;candidateMaePct:number;origins:number}};
 type ProductCell = {productId:string;name:string;quantity:number;share:number;growth3mPct:number|null};
 type Country = {country:string;confirmedQuantity:number;sharePct:number;growth3mPct:number|null;series:number[];byProduct:ProductCell[];forecast:Forecast;activeCustomers:number};
 type Signal = {id:string;kind:'risk'|'opportunity';priority:'high'|'medium'|'low';title:string;summary:string;countries:string[];metrics:{label:string;value:string}[];evidence:string[];customers:{id:string;name:string}[];requests:{id:string}[]|string[];action:string};
-type View = {totals:{confirmedQuantity:number;confirmedOrders:number;activeCustomers:number;growth3mPct:number|null;excluded:{enquiry:{orders:number;quantity:number};setup:{orders:number;quantity:number};orders:number;quantity:number}};monthly:{month:string;confirmed:number}[];countries:Country[];forecast:Forecast;risks:Signal[];opportunities:Signal[]};
+type View = {totals:{confirmedQuantity:number;confirmedOrders:number;activeCustomers:number;growth3mPct:number|null;excluded:{enquiry:{orders:number;quantity:number};setup:{orders:number;quantity:number};orders:number;quantity:number}};monthly:{month:string;confirmed:number}[];countries:Country[];forecast:Forecast;risks:Signal[];opportunities:Signal[];watchlist:Watch[]};
 type Analytics = {meta:{months:string[];nextMonth:string;products:{id:string;name:string}[]};views:Record<string,View>};
 
 const rank = {high:0, medium:1, low:2};
+const short: Record<string, string> = {baseline:'Average', candidate:'Trend', holt:'Holt'};
 
 function Growth({value}: {value: number|null|undefined}) {
  if (value == null) return <span className="flat">–</span>;
@@ -125,15 +128,28 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
    </div>
    <div className="card forecast-card">
     <h2>Which forecast is more accurate?</h2>
-    <p className="muted small">Both methods were tested on the last {fc.backtest.origins} months. The more accurate one is used.</p>
-    {[{name:'6–12 month average (today’s method)', mae:fc.backtest.baselineMae, pct:fc.backtest.baselineMaePct, on:fc.selected === 'baseline'}, {name:'Trend model', mae:fc.backtest.candidateMae, pct:fc.backtest.candidateMaePct, on:fc.selected === 'candidate'}].map(m => <div key={m.name} className={`model ${m.on ? 'on' : ''}`}>
-     <div><strong>{m.name}</strong>{m.on && <span className="pill green">Used</span>}</div>
-     <div className="bar"><span style={{width:`${Math.min(100, m.pct * 10)}%`}}/></div>
-     <span className="muted small">Off by {fmt(m.mae)} units a month ({m.pct.toFixed(1)}%)</span>
-    </div>)}
-    <p className="small note">Only 12 months of data, so seasonality is not modelled yet.</p>
+    <p className="muted small">{selected ? selected.country : 'All countries'}: three methods tested on the last {fc.backtest.origins} months. The most accurate is used.</p>
+    {fc.models.map(m => { const on = m.id === fc.selected; return <div key={m.id} className={`model ${on ? 'on' : ''}`}>
+     <div><strong>{m.id === 'baseline' ? 'Average (today’s method)' : m.name}</strong>{on && <span className="pill green">Used</span>}</div>
+     <div className="bar"><span style={{width:`${Math.min(100, (m.maePct ?? 0) * 10)}%`}}/></div>
+     <span className="muted small">Off by {fmt(m.mae ?? 0)} units a month ({(m.maePct ?? 0).toFixed(1)}%)</span>
+    </div>; })}
+    <div className="per-country"><span className="muted small">Used per country:</span>{view.countries.map(c => <span key={c.country} className="pill grey">{countryCode[c.country]} · {short[c.forecast.selected]}</span>)}</div>
    </div>
   </div>
+
+  {view.watchlist.length > 0 && <div className="card">
+   <div className="card-head"><h2>Early warning: customers slowing down</h2><span className="muted small">Still ordering, but down 15%+ on the 3 months before</span></div>
+   {view.watchlist.map(w => { const max = Math.max(...w.series, 1); const pts = w.series.map((v, i) => `${i * 10},${30 - v / max * 26}`).join(' ');
+    return <div key={w.id} className="watch">
+     <div><strong>{w.name}</strong><span className="muted small">{w.entity} · {w.country}</span></div>
+     <svg viewBox="0 0 110 32" className="spark"><polyline points={pts}/></svg>
+     <span className="num">{fmt(w.prior3Quantity)} → {fmt(w.last3Quantity)}</span>
+     <Growth value={w.changePct}/>
+     <button className="btn ghost" onClick={() => onOpenCustomer(w.id)}>View</button>
+    </div>; })}
+   <p className="muted small foot">Call these accounts now. Customers who already stopped ordering are listed under risks.</p>
+  </div>}
 
   <div className="card">
    <div className="card-head"><h2>What to do next</h2><span className="muted small">{view.risks.length} risks · {view.opportunities.length} opportunities</span></div>

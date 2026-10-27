@@ -41,3 +41,8 @@
 .b-callout line{stroke:#f0b25a;stroke-dasharray:4 4}
 .b-tag{background:#2d2416;border:1px solid #f0b25a;color:#f7cf8f;font-size:12px;font-weight:600;border-radius:8px;padding:6px 9px;font-family:Inter,sans-serif;line-height:1.35}
 .b-action{display:flex;gap:6px;align-items:flex-start;margin-top:12px;font-size:13px;color:var(--amber)}.b-action svg{margin-top:2px;flex-shrink:0}
+.per-country{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.watch{display:grid;grid-template-columns:1fr 110px 110px 70px auto;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.watch:first-of-type{border-top:0}.watch>div{display:flex;flex-direction:column}
+.spark{width:110px;height:32px}.spark polyline{fill:none;stroke:var(--red);stroke-width:2}
+@media (max-width:860px){.watch{grid-template-columns:1fr auto}.watch .spark,.watch .num{display:none}}

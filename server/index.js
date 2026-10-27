@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createStore } from './db.js';
+import { triage } from './triage.js';
 import { ApiError, act, audit, configOf, createRequest, duplicates, escalations, redact, sapPayload, validateConfig } from './domain.js';
 
 export function createApp(store) {
@@ -16,6 +17,7 @@ export function createApp(store) {
   app.post('/api/requests/:id/action',(req,res)=>{const item=store.all().requests.find(r=>r.id===req.params.id); if(!item) throw new ApiError(404,'Request not found'); const updated=act(item,req.body?.action,req.body?.note,role(req)); store.transaction(()=>{store.put('requests',updated);store.put('audit',audit(item.id,req.body.action,role(req),typeof req.body.note==='string'?req.body.note.trim():''));}); res.json(redact({...store.all(),requests:[updated]},role(req)).requests[0]);});
   app.get('/api/requests/:id/sap',(req,res)=>{const item=store.all().requests.find(r=>r.id===req.params.id); if(!item) throw new ApiError(404,'Request not found'); if(item.status!=='Approved') throw new ApiError(409,'Only approved requests can be exported'); if(!['Finance','Admin'].includes(role(req))) throw new ApiError(403,'Finance or Admin role required for SAP export'); res.json(sapPayload(item));});
   app.post('/api/simulate',(req,res)=>{const {sourceId,targetId}=req.body || {}; const data=store.all(); if(!sourceId||!targetId||sourceId===targetId) throw new ApiError(400,'Two distinct customer IDs are required'); if(!data.customers.some(c=>c.id===sourceId)||!data.customers.some(c=>c.id===targetId)) throw new ApiError(404,'Customer not found'); const source=data.orders.filter(o=>o.customerId===sourceId),target=data.orders.filter(o=>o.customerId===targetId); const sum=xs=>xs.reduce((n,o)=>n+o.quantity,0); const sourceQuantity=sum(source),targetQuantity=sum(target); res.json({before:{customerCount:data.customers.length,sourceQuantity,targetQuantity},after:{customerCount:data.customers.length-1,targetQuantity:sourceQuantity+targetQuantity},affectedOrders:source.length,totalQuantity:sourceQuantity+targetQuantity,explanation:'Simulated merge only; no records are changed. Source order quantities move to the target.'});});
+  app.post('/api/triage',(req,res)=>{const text=req.body?.text; if(typeof text!=='string') throw new ApiError(400,'text is required'); res.json(triage(text));});
   app.get('/api/config',(req,res)=>res.json(configOf(store.all())));
   app.put('/api/config',(req,res)=>{if(!['Admin'].includes(role(req))) throw new ApiError(403,'Only the MDM team can change workflow rules'); const config=validateConfig(req.body); store.transaction(()=>store.put('config',config)); res.json(config);});
   app.post('/api/escalations/run',(req,res)=>{const data=store.all(); const found=escalations(data.requests,data.audit,configOf(data)); store.transaction(()=>found.forEach(({request,entry})=>{store.put('requests',request);store.put('audit',entry);})); res.json({escalated:found.map(f=>f.request.id)});});

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, Check, Lock, Mail, Search } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Inbox, Lock, Mail, Search } from 'lucide-react';
 import { api, countries, defaultConfig, entities, detailFields, errorText, roleLabel, type Config, type Match, type RequestType, type Role } from '../api';
 import './RequestPage.css';
 
@@ -21,6 +21,35 @@ Credit limit: 20000
 
 Thanks,
 Linh Nguyen`;
+const samples: {label:string; text:string}[] = [
+ {label:'Setup', text:sample},
+ {label:'Order', text:`From: Aisha Lim <aisha.lim@penangmedical.example>
+Subject: PO 4500-1182 - Product A
+
+Hi team,
+
+Please supply 40 boxes of Product A to Penang Medical Centre.
+Delivery by 15 Nov.
+
+Regards,
+Aisha Lim`},
+ {label:'Enquiry', text:`From: Minh Tran <minh.tran@hanoihealth.example>
+Subject: Product C
+
+Hello,
+
+We are interested in Product C for our Hanoi labs. Could you share a quotation and the current lead time?
+
+Thanks,
+Minh Tran`},
+];
+type Triage = {label:'order'|'enquiry'|'setup'|'unclear'; confidence:number; reasons:string[]};
+const triageText: Record<Triage['label'], {title:string; pill:string; note:string}> = {
+ setup:{title:'New record setup', pill:'green', note:'Goes to the MDM form below.'},
+ order:{title:'Purchase order', pill:'blue', note:'Not a master-data request. It goes to the sales order desk and counts as confirmed demand.'},
+ enquiry:{title:'General enquiry', pill:'amber', note:'Logged as pipeline. Kept out of demand and forecasts until it becomes an order.'},
+ unclear:{title:'Not sure', pill:'grey', note:'No clear signals. Choose what it is.'},
+};
 
 type Values = Record<string, string>;
 const blank = (type: RequestType, name = ''): Values => ({type, name, entity:'', country:'', identifier:'', email:'', requester:'', deadline:'', priority:'2'});
@@ -45,7 +74,7 @@ function parseEmail(text: string, allFields: Config['fields'] = detailFields): V
  return Object.fromEntries(Object.entries(out).filter(([, v]) => v));
 }
 
-export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Role; onCreated:(id:string)=>void; onOpenCustomer:(id:string)=>void}) {
+export default function RequestPage({role, onCreated, onOpenCustomer, toast}: {role:Role; onCreated:(id:string)=>void; onOpenCustomer:(id:string)=>void; toast:(m:string)=>void}) {
  const [type, setType] = useState<RequestType>('Customer');
  const [query, setQuery] = useState('');
  const [matches, setMatches] = useState<Match[]>([]);
@@ -53,6 +82,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
  const [step, setStep] = useState<'search'|'form'>('search');
  const [mode, setMode] = useState<'form'|'email'>('form');
  const [email, setEmail] = useState('');
+ const [sorted, setSorted] = useState<Triage>();
  const [values, setValues] = useState<Values>(blank('Customer'));
  const [override, setOverride] = useState('');
  const [blocked, setBlocked] = useState<Match[]>([]);
@@ -103,9 +133,19 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
   </section>
 
   {mode === 'email' && <section className="card narrow">
-   <div className="card-head"><h2>Paste the email</h2><button className="btn ghost" onClick={() => setEmail(sample)}>Use sample</button></div>
-   <textarea className="input" rows={9} value={email} onChange={e => setEmail(e.target.value)} placeholder="Paste the email text here"/>
-   <div className="row-end"><button className="btn" disabled={!email.trim()} onClick={fromEmail}>Fill the form <ArrowRight size={15}/></button></div>
+   <div className="card-head"><h2>Paste the email</h2><div className="chips">{samples.map(x => <button key={x.label} className="chip" onClick={() => { setEmail(x.text); setSorted(undefined); }}>Sample: {x.label}</button>)}</div></div>
+   <textarea className="input" rows={9} value={email} onChange={e => { setEmail(e.target.value); setSorted(undefined); }} placeholder="Paste the email text here"/>
+   {!sorted ? <div className="row-end"><button className="btn" disabled={!email.trim()} onClick={() => api<Triage>('/triage', {method:'POST', body:JSON.stringify({text:email})}).then(setSorted).catch(e => toast(errorText(e)))}><Inbox size={15}/>Read email</button></div>
+   : <div className="triage">
+    <div className="triage-head"><span className={`pill ${triageText[sorted.label].pill}`}>{triageText[sorted.label].title}</span>{sorted.reasons.length > 0 && <span className="muted small">because: {sorted.reasons.join(', ')}</span>}</div>
+    <p className="small">{triageText[sorted.label].note}</p>
+    <div className="row-end gap">
+     {sorted.label === 'setup' && <button className="btn" onClick={fromEmail}>Fill the form <ArrowRight size={15}/></button>}
+     {sorted.label === 'order' && <><button className="btn ghost" onClick={fromEmail}>It’s a setup request</button><button className="btn" onClick={() => { toast('Sent to the sales order desk (simulated)'); setEmail(''); setSorted(undefined); }}>Send to order desk</button></>}
+     {sorted.label === 'enquiry' && <><button className="btn ghost" onClick={fromEmail}>It’s a setup request</button><button className="btn" onClick={() => { toast('Logged as an enquiry (simulated)'); setEmail(''); setSorted(undefined); }}>Log enquiry</button></>}
+     {sorted.label === 'unclear' && <><button className="btn secondary" onClick={() => { toast('Logged as an enquiry (simulated)'); setSorted(undefined); setEmail(''); }}>Enquiry</button><button className="btn" onClick={fromEmail}>Setup request</button></>}
+    </div>
+   </div>}
   </section>}
 
   {step === 'search' && query.trim().length >= 3 && !checking && <section className="narrow results">

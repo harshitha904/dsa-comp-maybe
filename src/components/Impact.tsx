@@ -14,8 +14,8 @@ const today: Segment[] = [
 ];
 const DAYS = 18;
 
-type Inputs = {requests:number; followups:number; followupMin:number; keyingMin:number; dupRate:number; fixHours:number};
-const start: Inputs = {requests:60, followups:4, followupMin:10, keyingMin:15, dupRate:5, fixHours:3};
+type Inputs = {requests:number; followups:number; followupMin:number; keyingMin:number; dupRate:number; fixHours:number; hourCost:number; build:number};
+const start: Inputs = {requests:60, followups:4, followupMin:10, keyingMin:15, dupRate:5, fixHours:3, hourCost:45, build:45000};
 const sliders: {key:keyof Inputs; label:string; min:number; max:number; step:number; unit:string}[] = [
  {key:'requests', label:'Master data requests a month', min:10, max:200, step:5, unit:''},
  {key:'followups', label:'Email follow-ups per request today', min:0, max:10, step:1, unit:''},
@@ -23,6 +23,16 @@ const sliders: {key:keyof Inputs; label:string; min:number; max:number; step:num
  {key:'keyingMin', label:'Minutes to key a record into SAP', min:5, max:45, step:5, unit:' min'},
  {key:'dupRate', label:'Requests that are duplicates today', min:0, max:20, step:1, unit:'%'},
  {key:'fixHours', label:'Hours to clean up one duplicate later', min:1, max:10, step:1, unit:' h'},
+];
+const costSliders: typeof sliders = [
+ {key:'hourCost', label:'Cost of a staff hour (S$)', min:20, max:120, step:5, unit:''},
+ {key:'build', label:'One-off pilot build (S$)', min:10000, max:150000, step:5000, unit:''},
+];
+const options = [
+ {name:'Keep email + Excel template', cost:'None', dup:'No', status:'No', fit:'Today’s 18-day process'},
+ {name:'SharePoint list + Power Automate', cost:'Low', dup:'Exact match only', status:'Basic', fit:'Cheap, but no duplicate search or regional view'},
+ {name:'MasterGraph on Microsoft 365 + SAP B1', cost:'Low–medium', dup:'Fuzzy, before submit', status:'Live + Teams', fit:'Chosen: fixes intake, approvals and analytics together', chosen:true},
+ {name:'Enterprise MDM suite (e.g. SAP MDG)', cost:'High', dup:'Yes', status:'Yes', fit:'Built for SAP S/4HANA scale, overkill for SAP B1'},
 ];
 
 export default function Impact() {
@@ -82,6 +92,44 @@ export default function Impact() {
     <div><span className="muted small">Staff time saved</span><strong>{fmt(hours + dupHours)} h / month</strong><span className="muted small">{fmt(hours)} h of chasing and keying, {fmt(dupHours)} h of duplicate clean-up</span></div>
     <div><span className="muted small">Duplicate records avoided</span><strong>{fmt(dupsPerYear)} / year</strong><span className="muted small">caught at the search box, before an approver sees them</span></div>
     <div><span className="muted small">Faster per request</span><strong>{(DAYS - typical).toFixed(1)} days</strong><span className="muted small">{DAYS} → ~{typical} days for a 3-step request</span></div>
+   </div>
+  </div>
+
+  <div className="card cost">
+   <div className="card-head"><h2>Cost and payback</h2><span className="muted small">Estimates, not quotes</span></div>
+   <div className="cost-grid">
+    <div className="est-inputs">{costSliders.map(s => <label key={s.key} className="slider"><span>{s.label}<strong>{fmt(inputs[s.key])}</strong></span>
+     <input type="range" min={s.min} max={s.max} step={s.step} value={inputs[s.key]} onChange={e => setInputs(v => ({...v, [s.key]:Number(e.target.value)}))}/></label>)}
+     <ul className="plain small muted">
+      <li><strong>MDM team does it themselves:</strong> fields, approval steps, escalation time (Rules screen)</li>
+      <li><strong>Lean team, 2 people × 6 weeks:</strong> Microsoft 365 sign-in, Teams cards via Power Automate, SAP B1 Service Layer link</li>
+      <li><strong>Outside help:</strong> a few SAP B1 partner days for Service Layer access and testing</li>
+      <li><strong>Running cost:</strong> hosting only; Teams, Outlook and SAP B1 are already licensed</li>
+     </ul>
+    </div>
+    <div className="est-out">
+     <div><span className="muted small">Saved per year</span><strong>S${fmt((hours + dupHours) * 12 * inputs.hourCost)}</strong><span className="muted small">{fmt((hours + dupHours) * 12)} staff hours × S${inputs.hourCost}</span></div>
+     <div><span className="muted small">Payback</span><strong>{(inputs.build / Math.max(1, (hours + dupHours) * inputs.hourCost)).toFixed(0)} months</strong><span className="muted small">before counting faster onboarding and cleaner forecasts</span></div>
+    </div>
+   </div>
+  </div>
+
+  <div className="card">
+   <div className="card-head"><h2>Why this over the alternatives</h2></div>
+   <div className="table-wrap"><table className="options">
+    <thead><tr><th>Option</th><th>Cost</th><th>Stops duplicates</th><th>Live status</th><th>Verdict</th></tr></thead>
+    <tbody>{options.map(o => <tr key={o.name} className={o.chosen ? 'chosen' : ''}><td><strong>{o.name}</strong></td><td>{o.cost}</td><td>{o.dup}</td><td>{o.status}</td><td>{o.fit}</td></tr>)}</tbody>
+   </table></div>
+  </div>
+
+  <div className="card">
+   <div className="card-head"><h2>Getting people to use it instead of email</h2></div>
+   <div className="adopt">
+    {[['Approvers never leave Teams', 'Approve or ask a question from the Teams card. No new app to open.'],
+      ['Email still works', 'The MDM mailbox auto-replies with the form link, and pasted emails are sorted and pre-filled.'],
+      ['Requesters stop chasing', 'They see who has it and for how long, so “any update?” emails disappear.'],
+      ['Start small', '6-week pilot: one country, one entity. Measure cycle time, duplicates caught and % of requests through MasterGraph, then expand.']]
+      .map(([t, d], i) => <div key={t}><span className="n">{i + 1}</span><strong>{t}</strong><p className="muted small">{d}</p></div>)}
    </div>
   </div>
  </div>;

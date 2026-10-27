@@ -44,7 +44,7 @@ export default function App() {
   </header>
   <main className="page">
    <Suspense fallback={<div className="loading">Loading…</div>}>
-    {page === 'request' && <RequestPage key={version} role={role} onCreated={id => { setToast('Request submitted'); go('track', id); }} onOpenCustomer={openCustomer}/>}
+    {page === 'request' && <RequestPage key={version} role={role} onCreated={id => { setToast('Request submitted'); go('track', id); }} onOpenCustomer={openCustomer} toast={setToast}/>}
     {page === 'track' && <Track key={version} role={role} selectedId={trackId} onSelect={id => go('track', id)} toast={setToast}/>}
     {page === 'regional' && <Regional key={version} onOpenCustomer={openCustomer} onOpenRequest={id => go('track', id)}/>}
     {page === 'graph' && <Graph key={version} initialCustomerId={customerId}/>}
@@ -71,7 +71,10 @@ export default function App() {
      <li><strong>Planted on purpose</strong> to reflect the brief: National University Hospital exists under SPD and again as NUH Singapore under QTS; Johor Distribution stops ordering after June; Vietnam grows each month; Siam Hospital Group dominates Thailand; some customers buy only Product A.</li>
      <li><strong>Demand</strong> = confirmed purchase orders, in units. Enquiries and MDM setup requests are tracked but excluded.</li>
      <li><strong>Growth</strong> = confirmed units in the last 3 months vs the 3 months before.</li>
-     <li><strong>Forecast</strong>: the 6–12 month average and a trend model are both tested on the last 6 months; the one with the lower error is used.</li>
+     <li><strong>Forecast</strong>: the 6–12 month average, a linear trend and Holt’s smoothing are each tested on the last 6 months, per country. A newer method is used only if it beats the average.</li>
+     <li><strong>Early warning</strong>: customers still ordering whose last 3 months are 15%+ below the 3 before.</li>
+     <li><strong>Email sorting</strong>: rule-based, and shows the phrases it used (PO number, quantity, quote request, setup fields).</li>
+     <li><strong>Costs</strong>: staff hour and build cost on the Impact page are assumptions to replace with Lives Group’s figures.</li>
      <li><strong>Impact</strong>: 18 days is from the brief. MasterGraph timing assumes each approver acts within a day; savings use the slider assumptions on the Impact page.</li>
     </ul>
     <button className="btn secondary" onClick={reset}>Reset demo data</button>

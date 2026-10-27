@@ -24,3 +24,7 @@
 .route li:last-child span{background:var(--green);color:#fff}
 .lock-note{display:flex;gap:6px;align-items:flex-start}.lock-note svg{margin-top:2px;color:var(--amber);flex-shrink:0}
 @media (max-width:860px){.form-grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.match{flex-direction:column;align-items:flex-start}}
+.triage{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.triage-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.triage .row-end{margin-top:4px}.row-end.gap{gap:8px}
+.narrow .card-head{flex-wrap:wrap}

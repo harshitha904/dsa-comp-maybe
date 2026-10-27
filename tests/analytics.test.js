@@ -365,3 +365,23 @@ test('addMonths crosses year boundaries', () => {
   assert.equal(addMonths('2026-01', -1), '2025-12');
   assert.deepEqual(monthRange('2025-11', '2026-02'), ['2025-11', '2025-12', '2026-01', '2026-02']);
 });
+
+test('forecast: Holt only wins when it beats both the average (by the margin) and the linear trend', () => {
+  const all = [seeded.views.all.forecast, ...seeded.views.all.countries.map((c) => c.forecast)];
+  for (const f of all) {
+    const byId = Object.fromEntries(f.models.map((m) => [m.id, m]));
+    assert.equal(f.selectedForecast, byId[f.selected].forecast);
+    if (f.selected === 'holt') assert.ok(byId.holt.mae < byId.candidate.mae && byId.holt.mae < byId.baseline.mae);
+  }
+  const linear = forecastSeries([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120], monthRange('2026-01', '2026-12'), '2027-01');
+  assert.equal(linear.selected, 'candidate', 'ties between challengers go to the simpler OLS trend');
+});
+
+test('drop-off watchlist flags declining customers who are still ordering, not lapsed ones', async () => {
+  const { seedData } = await import('../server/seed.js');
+  const app = buildAnalytics(seedData(new Date('2026-10-28T00:00:00Z')));
+  const names = app.views.all.watchlist.map((w) => w.name);
+  assert.ok(names.includes('Selangor Healthcare'), names.join(', '));
+  assert.ok(!names.includes('Johor Distribution'), 'lapsed customers belong to the lapsed risk, not the watchlist');
+  assert.ok(app.views.all.watchlist.every((w) => w.last3Quantity > 0 && w.changePct <= -15));
+});
