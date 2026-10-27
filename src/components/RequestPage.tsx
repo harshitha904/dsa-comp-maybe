@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowRight, Check, Inbox, Lock, Mail, Search } from 'lucide-react';
 import { api, countries, defaultConfig, entities, detailFields, errorText, roleLabel, type Config, type Match, type RequestType, type Role } from '../api';
 import './RequestPage.css';
@@ -89,6 +89,9 @@ export default function RequestPage({role, onCreated, onOpenCustomer, toast}: {r
  const [error, setError] = useState('');
  const [saving, setSaving] = useState(false);
  const [config, setConfig] = useState<Config>(defaultConfig);
+ const formRef = useRef<HTMLElement>(null);
+ // Bring the form into view when it opens, so its submit button is never hidden below the fold.
+ useEffect(() => { if (step === 'form') formRef.current?.scrollIntoView({behavior:'smooth', block:'start'}); }, [step]);
  useEffect(() => { api<Config>('/config').then(setConfig).catch(() => {}); }, []);
 
  useEffect(() => {
@@ -160,9 +163,9 @@ export default function RequestPage({role, onCreated, onOpenCustomer, toast}: {r
    </> : <div className="card match"><div><strong>No existing record found</strong><div className="muted small">Safe to create “{query}”.</div></div><button className="btn" onClick={() => startForm()}>Create request <ArrowRight size={15}/></button></div>}
   </section>}
 
-  {step === 'form' && <section className="form-grid">
+  {step === 'form' && <section className="form-grid" ref={formRef}>
    <div className="card">
-    <div className="card-head"><h2>New {t.toLowerCase()} request</h2>{missing.length ? <span className="pill amber">{missing.length} to fill</span> : <span className="pill green"><Check size={12}/>Complete</span>}</div>
+    <div className="card-head"><h2>New {t.toLowerCase()} request</h2><div className="head-actions">{missing.length ? <span className="pill amber">{missing.length} to fill</span> : <span className="pill green"><Check size={12}/>Complete</span>}<button className="btn" disabled={missing.length > 0 || saving || (blocked.length > 0 && override.trim().length < 10)} onClick={submit}>{saving ? 'Submitting…' : 'Submit request'}</button></div></div>
     <div className="fields">
      <Field label="Name" k="name" values={values} set={set} missing={missing}/>
      <label className="field">Business entity<select value={values.entity} onChange={e => set('entity', e.target.value)} className={missing.includes('entity') ? 'need' : ''}><option value="">Select…</option>{entities.map(x => <option key={x}>{x}</option>)}</select></label>

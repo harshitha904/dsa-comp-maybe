@@ -28,3 +28,5 @@
 .triage-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .triage .row-end{margin-top:4px}.row-end.gap{gap:8px}
 .narrow .card-head{flex-wrap:wrap}
+.head-actions{display:flex;align-items:center;gap:10px}
+.form-grid{scroll-margin-top:72px}
