@@ -30,3 +30,14 @@
 @media (max-width:860px){.chart-row{grid-template-columns:1fr}.table-card{overflow-x:auto}}
 .matrix.entity tbody tr{cursor:default}.matrix.entity tbody tr:hover td:first-child{color:inherit}
 .split{margin-top:12px;align-items:center;flex-wrap:wrap}.split .btn{margin-left:auto}
+.bubble-card{padding-bottom:16px}
+.bubble-card>svg{width:100%;height:auto;display:block;background:radial-gradient(ellipse at 50% 50%,#1d2b26 0%,#121916 75%);border-radius:12px}
+.b-node{cursor:pointer;outline:none}
+.b-node circle{stroke-width:2;transition:stroke-width .15s}
+.b-node.up circle{fill:#24493f;stroke:#7fd1b4}.b-node.down circle{fill:#4a2a24;stroke:#f09a85}.b-node.flat circle{fill:#2b3632;stroke:#8fa39b}
+.b-node:hover circle,.b-node:focus-visible circle,.b-node.sel circle{stroke-width:4}
+.b-node text{text-anchor:middle;pointer-events:none}.b-name{fill:#fff;font-size:14px;font-weight:650}
+.b-node.up .b-val{fill:#9be6c9}.b-node.down .b-val{fill:#ffb3a3}.b-node.flat .b-val{fill:#c3d0ca}.b-val{font-size:12px;font-weight:600}
+.b-callout line{stroke:#f0b25a;stroke-dasharray:4 4}
+.b-tag{background:#2d2416;border:1px solid #f0b25a;color:#f7cf8f;font-size:12px;font-weight:600;border-radius:8px;padding:6px 9px;font-family:Inter,sans-serif;line-height:1.35}
+.b-action{display:flex;gap:6px;align-items:flex-start;margin-top:12px;font-size:13px;color:var(--amber)}.b-action svg{margin-top:2px;flex-shrink:0}

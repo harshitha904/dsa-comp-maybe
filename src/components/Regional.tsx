@@ -84,6 +84,8 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
    <div className="stat"><div className="label">Kept out of demand</div><div className="value num">{totals.excluded.orders}</div><div className="sub">{totals.excluded.enquiry.orders} enquiries · {totals.excluded.setup.orders} setup requests</div></div>
   </div>
 
+  <BubbleMap countries={view.countries} signals={view.opportunities} selected={country} onSelect={c => setCountry(country === c ? '' : c)}/>
+
   <div className="card table-card">
    <div className="card-head"><h2>Country × product</h2><span className="muted small">Units · 3-month growth · click a row to chart it</span></div>
    <table className="matrix">
@@ -151,5 +153,27 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
    </div>)}</div>
    {signals.length > 5 && <button className="btn secondary more" onClick={() => setShowAll(v => !v)}>{showAll ? 'Show fewer' : `Show all ${signals.length}`}</button>}
   </div>
+ </div>;
+}
+
+// Rough geographic placement so the region reads as a map; size and colour come from the data.
+const spots: Record<string, {x:number; y:number}> = {Thailand:{x:235,y:100}, Vietnam:{x:440,y:105}, Malaysia:{x:250,y:255}, Singapore:{x:395,y:300}, Indonesia:{x:590,y:265}};
+function BubbleMap({countries, signals, selected, onSelect}: {countries:Country[]; signals:Signal[]; selected:string; onSelect:(c:string)=>void}) {
+ const max = Math.max(...countries.map(c => c.confirmedQuantity));
+ const tone = (g: number|null) => g == null ? 'flat' : g > 3 ? 'up' : g < -3 ? 'down' : 'flat';
+ const top = [...signals].sort((a, b) => rank[a.priority] - rank[b.priority]).find(s => s.countries.some(c => spots[c]));
+ const anchor = top && spots[top.countries.find(c => spots[c])!];
+ return <div className="card bubble-card">
+  <div className="card-head"><h2>Where demand is moving</h2><span className="muted small">Bubble size = confirmed units · colour = 3-month growth</span></div>
+  <svg viewBox="0 0 760 380" role="img" aria-label="Confirmed demand and growth by country">
+   {anchor && <g className="b-callout"><line x1={anchor.x} y1={anchor.y} x2={Math.min(anchor.x + 150, 540)} y2={Math.max(anchor.y - 55, 40)}/><foreignObject x={Math.min(anchor.x + 150, 540)} y={Math.max(anchor.y - 80, 14)} width="210" height="60"><div className="b-tag">{top!.title}</div></foreignObject></g>}
+   {countries.filter(c => spots[c.country]).map(c => { const p = spots[c.country], r = 24 + 42 * Math.sqrt(c.confirmedQuantity / max), t = tone(c.growth3mPct);
+    return <g key={c.country} className={`b-node ${t} ${selected === c.country ? 'sel' : ''}`} role="button" tabIndex={0} aria-label={`${c.country}: ${fmt(c.confirmedQuantity)} units`} onClick={() => onSelect(c.country)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.country); } }}>
+     <circle cx={p.x} cy={p.y} r={r}/>
+     <text x={p.x} y={p.y - 4} className="b-name">{c.country}</text>
+     <text x={p.x} y={p.y + 12} className="b-val">{c.growth3mPct == null ? '–' : `${Math.round(c.growth3mPct) > 0 ? '+' : ''}${Math.round(c.growth3mPct) || 0}%`} · {fmt(c.confirmedQuantity)}</text>
+    </g>; })}
+  </svg>
+  {top && <p className="b-action"><ArrowRight size={14}/><span><strong>Next best action:</strong> {top.action}</span></p>}
  </div>;
 }

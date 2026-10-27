@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ReactFlow, Background, BackgroundVariant, Controls, MarkerType, type Node, type Edge } from '@xyflow/react';
 import { Search, ArrowRight, ShieldCheck, AlertTriangle, RefreshCw } from 'lucide-react';
-import { api } from '../api';
-import '@xyflow/react/dist/style.css';
+import { api, entities } from '../api';
 import './Graph.css';
 
 type Customer = { id:string; entity?:string; name:string; country:string; identifier:string; email:string; aliases:string[] };
@@ -31,6 +29,12 @@ function potentialPairs(customers:Customer[]) {
  return pairs;
 }
 const fmt = (n:number) => n.toLocaleString();
+// Fixed canvas: three entity hubs in a triangle, each customer orbiting the entity that owns its record.
+const W=900, H=580;
+const hubs:Record<string,{x:number;y:number}> = { SPD:{x:215,y:190}, QTS:{x:685,y:190}, QTG:{x:450,y:430} };
+const centre = {x:450,y:270};
+const short = (s:string, n=22) => s.length>n ? s.slice(0,n-1)+'…' : s;
+type Placed = { c:Customer; x:number; y:number; r:number; units:number; dup:boolean };
 const message = (e:unknown) => e instanceof Error ? e.message : 'Unable to load data. Please retry.';
 
 export default function Graph({ initialCustomerId }: { initialCustomerId?:string }) {
@@ -39,7 +43,9 @@ export default function Graph({ initialCustomerId }: { initialCustomerId?:string
  const [revision,setRevision] = useState(0);
  const [selected,setSelected] = useState('');
  const [query,setQuery] = useState('');
- const [country,setCountry] = useState('Singapore');
+ const [country,setCountry] = useState('');
+ const [entity,setEntity] = useState('');
+ const [hover,setHover] = useState<Placed>();
  const [product,setProduct] = useState('');
  const [collisionsOnly,setCollisionsOnly] = useState(false);
  const [matches,setMatches] = useState<Match[]>([]);
@@ -52,11 +58,10 @@ export default function Graph({ initialCustomerId }: { initialCustomerId?:string
  const simulationRun = useRef(0);
  useEffect(() => {
   let active=true; setLoadError('');
-  api<Bootstrap>('/bootstrap').then(value=>{if(active){setData(value);setSelected(current=>initialCustomerId || current || value.customers.find(c=>['Singapore','SG'].includes(c.country))?.id || value.customers[0]?.id || '');setCountry(current=>initialCustomerId?value.customers.find(c=>c.id===initialCustomerId)?.country || current:current==='Singapore'&&!value.customers.some(c=>c.country==='Singapore')&&value.customers.some(c=>c.country==='SG')?'SG':current);}}).catch(e=>{if(active)setLoadError(message(e));});
+  api<Bootstrap>('/bootstrap').then(value=>{if(active){setData(value);setSelected(current=>initialCustomerId || current || value.customers[0]?.id || '');}}).catch(e=>{if(active)setLoadError(message(e));});
   return ()=>{active=false;};
  },[revision]);
  useEffect(()=>{if(initialCustomerId){setSelected(initialCustomerId);setQuery('');setProduct('');setCollisionsOnly(false);}},[initialCustomerId]);
- useEffect(()=>{if(initialCustomerId&&data){const record=data.customers.find(c=>c.id===initialCustomerId);if(record)setCountry(record.country);}},[initialCustomerId,data]);
  const customer = data?.customers.find(c=>c.id===selected);
  useEffect(()=>{
   let active=true; simulationRun.current++; setSimulating(false);setMatches([]);setTarget('');setSimulation(undefined);setSimulationError('');setEvidenceError('');
@@ -71,30 +76,25 @@ export default function Graph({ initialCustomerId }: { initialCustomerId?:string
  const pairs = useMemo(()=>potentialPairs(data?.customers || []),[data]);
  const collisionIds = useMemo(()=>new Set(pairs.flatMap(p=>[p.source,p.target])),[pairs]);
  const graph = useMemo(()=>{
-  if(!data)return {nodes:[] as Node[],edges:[] as Edge[],customers:[] as Customer[]};
-  const visible=data.customers.filter(c=>(!country||c.country===country)&&(!query||[c.name,c.identifier,c.email,...c.aliases].join(' ').toLowerCase().includes(query.toLowerCase()))&&(!product||confirmed.some(o=>o.customerId===c.id&&o.productId===product))&&(!collisionsOnly||collisionIds.has(c.id)));
-  const ids=new Set(visible.map(c=>c.id));
-  const orders=confirmed.filter(o=>ids.has(o.customerId)&&(!product||o.productId===product));
-  const products=data.products.filter(p=>(!product||p.id===product)&&orders.some(o=>o.productId===p.id));
-  const countries=[...new Set(visible.map(c=>c.country))];
-  // The focused country stays in three readable relationship lanes. Regional
-  // exploration wraps customers instead of growing one 2,160px column.
-  const columns=country?1:Math.min(3,Math.ceil(Math.sqrt(visible.length)) || 1);
-  const customerPosition=(i:number)=>({x:250+(i%columns)*250,y:Math.floor(i/columns)*125});
-  const productX=250+columns*250+60;
-  const nodes:Node[]=[...countries.map((c,i)=>({id:`country:${c}`,position:{x:0,y:countries.length===1?Math.max(0,(Math.ceil(visible.length/columns)-1)*125/2):i*135},data:{label:<><span className="ig-node-type">COUNTRY</span><strong>{countryNames[c]||c}</strong></>},className:'ig-country'})),...visible.map((c,i)=>({id:`customer:${c.id}`,position:customerPosition(i),selected:selected===c.id,data:{label:<><span className="ig-node-type">{collisionIds.has(c.id)?'POSSIBLE DUPLICATE':'CUSTOMER'}{c.entity?` · ${c.entity}`:''}</span><strong>{c.name}</strong><span>{c.id} · {countryNames[c.country]||c.country}</span></>},className:`ig-customer ${collisionIds.has(c.id)?'ig-collision':''}`})),...products.map((p,i)=>({id:`product:${p.id}`,position:{x:productX,y:i*165+30},data:{label:<><span className="ig-node-type">PRODUCT</span><strong>{p.name}</strong><span>{p.category}</span></>},className:'ig-product'}))];
-  const edges:Edge[]=visible.map(c=>({id:`location:${c.id}`,source:`country:${c.country}`,target:`customer:${c.id}`,style:{stroke:'#c2d3ce'},ariaLabel:`${c.name} located in ${countryNames[c.country]||c.country}`}));
-  const totals=new Map<string,{customerId:string;productId:string;quantity:number;count:number}>();
-  orders.forEach(o=>{const key=JSON.stringify([o.customerId,o.productId]);const old=totals.get(key);totals.set(key,{customerId:o.customerId,productId:o.productId,quantity:(old?.quantity||0)+o.quantity,count:(old?.count||0)+1});});
-  totals.forEach((o,key)=>edges.push({id:`order:${key}`,source:`customer:${o.customerId}`,target:`product:${o.productId}`,label:`${fmt(o.quantity)} units`,style:{stroke:'#288e83',strokeWidth:2},labelStyle:{fill:'#32625a',fontSize:11},labelBgStyle:{fill:'#fff'},markerEnd:{type:MarkerType.ArrowClosed,color:'#288e83'}}));
-  pairs.filter(p=>ids.has(p.source)&&ids.has(p.target)).forEach(p=>edges.push({id:`duplicate:${p.source}:${p.target}`,source:`customer:${p.source}`,target:`customer:${p.target}`,label:'Possible duplicate',ariaLabel:`Potential duplicate: ${p.evidence.join('; ')}`,type:'smoothstep',style:{stroke:'#df8b34',strokeWidth:2,strokeDasharray:'6 5'},labelStyle:{fill:'#a35a18',fontSize:11},labelBgStyle:{fill:'#fff7e9'}}));
-  return {nodes,edges,customers:visible};
- },[data,confirmed,query,country,product,collisionsOnly,pairs,collisionIds,selected]);
- function activateNode(id:string){
-  if(id.startsWith('customer:'))setSelected(id.slice(9));
-  else if(id.startsWith('country:'))setCountry(id.slice(8));
-  else if(id.startsWith('product:'))setProduct(id.slice(8));
- }
+  if(!data)return {placed:[] as Placed[],links:[] as {a:Placed;b:Placed;evidence:string[]}[],counts:{} as Record<string,number>};
+  const units=new Map<string,number>();
+  confirmed.filter(o=>!product||o.productId===product).forEach(o=>units.set(o.customerId,(units.get(o.customerId)??0)+o.quantity));
+  const visible=data.customers.filter(c=>(!entity||c.entity===entity)&&(!country||c.country===country)&&(!query||[c.name,c.identifier,c.email,...c.aliases].join(' ').toLowerCase().includes(query.toLowerCase()))&&(!product||units.has(c.id))&&(!collisionsOnly||collisionIds.has(c.id)));
+  const max=Math.max(1,...visible.map(c=>units.get(c.id)??0));
+  const placed:Placed[]=[]; const counts:Record<string,number>={};
+  for(const e of entities){
+   const hub=hubs[e];
+   // Duplicates go first so they sit on the side facing the other hubs, where their partner is.
+   const group=visible.filter(c=>c.entity===e).sort((a,b)=>Number(collisionIds.has(b.id))-Number(collisionIds.has(a.id)));
+   counts[e]=group.length;
+   const a0=Math.atan2(centre.y-hub.y,centre.x-hub.x), R=group.length<=4?100:132;
+   group.forEach((c,i)=>{const a=a0+i*2*Math.PI/group.length, u=units.get(c.id)??0;
+    placed.push({c,x:hub.x+R*Math.cos(a),y:hub.y+R*Math.sin(a),r:7+13*Math.sqrt(u/max),units:u,dup:collisionIds.has(c.id)});});
+  }
+  const at=new Map(placed.map(p=>[p.c.id,p]));
+  const links=pairs.filter(p=>at.has(p.source)&&at.has(p.target)).map(p=>({a:at.get(p.source)!,b:at.get(p.target)!,evidence:p.evidence}));
+  return {placed,links,counts};
+ },[data,confirmed,query,country,product,entity,collisionsOnly,pairs,collisionIds]);
  async function simulate(){
   if(!customer||!target||simulating)return;
   const run=++simulationRun.current;setSimulating(true);setSimulation(undefined);setSimulationError('');
@@ -105,7 +105,7 @@ export default function Graph({ initialCustomerId }: { initialCustomerId?:string
  const selectedOrders=confirmed.filter(o=>o.customerId===selected);
  const conserved=simulation && simulation.before.sourceQuantity+simulation.before.targetQuantity===simulation.after.targetQuantity;
  return <section className="graph-page" aria-label="Relationship graph">
-  <div className="page-head"><div><h1>Graph</h1><p>Customers, products and countries. Orange dashed lines are possible duplicates.</p></div>
+  <div className="page-head"><div><h1>Graph</h1><p>Each customer record, grouped by the entity that created it. Glowing pairs are the same customer entered twice.</p></div>
    {data&&<span className="pill amber"><AlertTriangle size={13}/>{pairs.length} possible duplicate {pairs.length===1?'pair':'pairs'}</span>}</div>
   {loadError?<div className="card empty" role="alert">{loadError} <button className="btn secondary" onClick={()=>setRevision(n=>n+1)}><RefreshCw size={14}/> Retry</button></div>:!data?<div className="loading">Loading graph…</div>:
    <div className="ig-workspace"><div className="card ig-graph-panel">
@@ -113,8 +113,32 @@ export default function Graph({ initialCustomerId }: { initialCustomerId?:string
      <select aria-label="Country" className="input" value={country} onChange={e=>setCountry(e.target.value)}><option value="">All countries</option>{[...new Set(data.customers.map(c=>c.country))].map(c=><option key={c} value={c}>{countryNames[c]||c}</option>)}</select>
      <select aria-label="Product" className="input" value={product} onChange={e=>setProduct(e.target.value)}><option value="">All products</option>{data.products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
      <label className="ig-check"><input type="checkbox" checked={collisionsOnly} onChange={e=>setCollisionsOnly(e.target.checked)}/> Duplicates only</label></div>
-    <div className="ig-canvas" onKeyDownCapture={event=>{if(event.key==='Enter'||event.key===' '){const node=(event.target as HTMLElement).closest('.react-flow__node');const id=node?.getAttribute('data-id');if(id){event.preventDefault();event.stopPropagation();activateNode(id);}}}}>{graph.nodes.length?<ReactFlow key={`${query}:${country}:${product}:${collisionsOnly}:${revision}`} nodes={graph.nodes} edges={graph.edges} fitView fitViewOptions={{padding:0.2}} minZoom={0.15} maxZoom={2} nodesDraggable={false} nodesConnectable={false} onNodeClick={(_,node)=>activateNode(node.id)} onSelectionChange={({nodes})=>{const node=nodes.find(n=>n.id.startsWith('customer:'));if(node)setSelected(node.id.slice(9));}}><Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#dcdcd4"/><Controls showInteractive={false}/></ReactFlow>:<div className="empty">No customers match. <button className="btn ghost" onClick={()=>{setQuery('');setCountry('');setProduct('');setCollisionsOnly(false);}}>Reset filters</button></div>}</div>
-    <div className="ig-legend"><span><i className="ig-dot customer"/>Customer</span><span><i className="ig-dot product"/>Product</span><span><i className="ig-dot country"/>Country</span><span><i className="ig-line"/>Orders</span><span><i className="ig-line collision"/>Possible duplicate</span></div>
+       <div className="ig-canvas">{graph.placed.length?<svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Customers grouped by the business entity that owns each record">
+     <defs>
+      <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#ffffff10"/></pattern>
+      <radialGradient id="glow"><stop offset="0%" stopColor="#f0b25a" stopOpacity=".55"/><stop offset="100%" stopColor="#f0b25a" stopOpacity="0"/></radialGradient>
+     </defs>
+     <rect width={W} height={H} fill="url(#dots)"/>
+     {graph.placed.map(p=>{const h=hubs[p.c.entity!];const lit=hover?.c.id===p.c.id||selected===p.c.id;return <line key={`l${p.c.id}`} x1={h.x} y1={h.y} x2={p.x} y2={p.y} className={`g-spoke ${lit?'lit':''}`}/>;})}
+     {graph.links.map(l=>{const mx=(l.a.x+l.b.x)/2,my=(l.a.y+l.b.y)/2-40;return <g key={`d${l.a.c.id}${l.b.c.id}`} className="g-dup">
+      <path d={`M${l.a.x},${l.a.y} Q${mx},${my} ${l.b.x},${l.b.y}`}/>
+      <text x={mx} y={my+14} textAnchor="middle">Possible duplicate · {l.a.c.entity} vs {l.b.c.entity}</text>
+     </g>;})}
+     {entities.filter(e=>!entity||e===entity).map(e=>{const h=hubs[e];return <g key={e} className={`g-hub ${entity===e?'on':''}`} role="button" tabIndex={0} aria-label={`Show only ${e}`} onClick={()=>setEntity(entity===e?'':e)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setEntity(entity===e?'':e);}}}>
+      <circle cx={h.x} cy={h.y} r={32}/><text x={h.x} y={h.y+1} className="hub-name">{e}</text><text x={h.x} y={h.y+16} className="hub-count">{graph.counts[e]} records</text>
+     </g>;})}
+     {graph.placed.map(p=><g key={p.c.id} className={`g-node ${p.dup?'dup':''} ${selected===p.c.id?'sel':''}`} role="button" tabIndex={0} aria-label={`${p.c.name}, ${p.c.entity}, ${fmt(p.units)} units`}
+      onClick={()=>setSelected(p.c.id)} onKeyDown={ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();setSelected(p.c.id);}}} onMouseEnter={()=>setHover(p)} onMouseLeave={()=>setHover(undefined)} onFocus={()=>setHover(p)} onBlur={()=>setHover(undefined)}>
+      {p.dup&&<circle cx={p.x} cy={p.y} r={p.r+16} fill="url(#glow)" className="pulse"/>}
+      {selected===p.c.id&&<circle cx={p.x} cy={p.y} r={p.r+6} className="ring"/>}
+      <circle cx={p.x} cy={p.y} r={p.r} className="dot"/>
+      <text x={p.x} y={p.y+p.r+14} textAnchor="middle">{short(p.c.name)}</text>
+     </g>)}
+     {hover&&<g className="g-tip" transform={`translate(${Math.min(hover.x+14,W-196)},${Math.max(hover.y-58,8)})`}><rect width="186" height="50" rx="8"/><text x="10" y="20" className="t1">{short(hover.c.name,26)}</text><text x="10" y="38" className="t2">{hover.c.entity} · {hover.c.country} · {fmt(hover.units)} units</text></g>}
+    </svg>:<div className="empty">No customers match. <button className="btn ghost" onClick={()=>{setQuery('');setCountry('');setProduct('');setEntity('');setCollisionsOnly(false);}}>Reset filters</button></div>}
+     <div className="g-chips">{['',...entities].map(e=><button key={e||'all'} className={entity===e?'on':''} onClick={()=>setEntity(e)}>{e||'All'}</button>)}</div>
+    </div>
+    <div className="ig-legend"><span><i className="ig-dot hub"/>Business entity</span><span><i className="ig-dot customer"/>Customer (size = confirmed units)</span><span><i className="ig-dot dup"/>Possible duplicate</span></div>
    </div>
    <aside className="card ig-sidebar" aria-label="Selected record">
     <select aria-label="Customer" className="input" value={customer?.id||''} onChange={e=>setSelected(e.target.value)}><option value="" disabled>Select a customer</option>{data.customers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
