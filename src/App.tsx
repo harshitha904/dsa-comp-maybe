@@ -53,11 +53,9 @@ export default function App() {
    </Suspense>
   </main>
   {about && <div className="modal-backdrop" onClick={() => setAbout(false)}>
-   <div className="modal" role="dialog" aria-label="How it works" onClick={e => e.stopPropagation()}>
+   <div className="modal wide" role="dialog" aria-label="How it works" onClick={e => e.stopPropagation()}>
     <div className="modal-head"><h2>How it works</h2><button className="icon-btn" aria-label="Close" onClick={() => setAbout(false)}><X size={18}/></button></div>
-    <ol className="flow">
-     {['Requestor searches, then submits one form','Duplicate check runs before an approver sees it','Approvers act in order; everyone sees the stage','MDM team does the final check','Record is pushed to SAP B1 (Service Layer)'].map((s, i) => <li key={i}><span>{i + 1}</span>{s}</li>)}
-    </ol>
+    <a href="/process-flow.svg" target="_blank" rel="noreferrer" title="Open full size"><img className="flow-img" src="/process-flow.svg" alt="Process flow: request by email or form, sorted, duplicate-checked, one complete form, approvals in Teams with escalation, MDM final check, created in SAP B1 via the Service Layer, and clean records feeding the regional view."/></a>
     <h3>Not in version 1</h3>
     <ul className="plain">
      <li>Live SAP B1 connection (payload is simulated)</li>

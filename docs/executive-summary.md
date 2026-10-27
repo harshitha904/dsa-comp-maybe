@@ -17,6 +17,8 @@ Because SPD, QTS and QTG each key records into the same SAP B1, the **same hospi
 
 ### MasterGraph: one flow from request to SAP B1 to regional insight
 
+![MasterGraph process flow to SAP B1](process-flow.png)
+
 | Step | What happens | Pain point it removes |
 |---|---|---|
 | **Request** | Pasted emails are sorted into *purchase order*, *enquiry* or *setup request*, with the reasons shown. Only setup requests reach the form. The requester searches first and sees existing matches (e.g. "NUH Singapore, 100%") before creating anything. | Duplicates, incomplete forms, orders mixed with MDM requests |
