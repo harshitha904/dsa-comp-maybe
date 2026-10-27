@@ -8,3 +8,9 @@ data/
 *.tsbuildinfo
 .venv-pdf/
 tmp/
+
+.vercel/
+
+.env.*
+.vercel
+.env*

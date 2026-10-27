@@ -69,11 +69,11 @@ const ACTIONS: Record<Action, { label: string; past: string; icon: LucideIcon; t
 };
 
 interface FieldDef { key: string; label: string; kind: 'text' | 'select' | 'number'; options?: string[]; required?: boolean; placeholder?: string; hint?: string; min?: number }
-interface Schema { icon: LucideIcon; blurb: string; identifierLabel: string; identifierHint: string; identifierRequired: boolean; emailRequired: boolean; fields: FieldDef[] }
+interface Schema { idMax: number; nameMax: number; icon: LucideIcon; blurb: string; identifierLabel: string; identifierHint: string; identifierRequired: boolean; emailRequired: boolean; fields: FieldDef[] }
 
 const SCHEMAS: Record<RequestType, Schema> = {
   Customer: {
-    icon: Building2, blurb: 'A sold-to account that can place orders.',
+    idMax: 32, nameMax: 100, icon: Building2, blurb: 'A sold-to account that can place orders.',
     identifierLabel: 'Business registration no.', identifierHint: 'Company registration or tax number, e.g. SG-NUH-001', identifierRequired: true, emailRequired: true,
     fields: [
       { key: 'segment', label: 'Customer segment', kind: 'select', options: ['Distributor', 'Retailer', 'OEM', 'Direct account'], required: true },
@@ -83,7 +83,7 @@ const SCHEMAS: Record<RequestType, Schema> = {
     ],
   },
   Vendor: {
-    icon: Truck, blurb: 'A supplier or service provider we pay.',
+    idMax: 32, nameMax: 100, icon: Truck, blurb: 'A supplier or service provider we pay.',
     identifierLabel: 'Vendor registration no.', identifierHint: 'Registration or tax number of the supplying entity', identifierRequired: true, emailRequired: true,
     fields: [
       { key: 'category', label: 'Vendor category', kind: 'select', options: ['Raw materials', 'Packaging', 'Logistics', 'Professional services'], required: true },
@@ -93,8 +93,8 @@ const SCHEMAS: Record<RequestType, Schema> = {
     ],
   },
   Item: {
-    icon: Package, blurb: 'A material or finished good in the product master.',
-    identifierLabel: 'Item / material code', identifierHint: 'Proposed SKU or material number, e.g. PA-1042', identifierRequired: false, emailRequired: false,
+    idMax: 50, nameMax: 100, icon: Package, blurb: 'A material or finished good in the product master.',
+    identifierLabel: 'Item / material code', identifierHint: 'Optional, up to 50 characters (letters, digits, _ . / -). Left blank, a simulated code is generated.', identifierRequired: false, emailRequired: false,
     fields: [
       { key: 'line', label: 'Product line', kind: 'select', options: ['Product A', 'Product B', 'Product C'], required: true },
       { key: 'uom', label: 'Unit of measure', kind: 'select', options: ['Each', 'Kilogram', 'Litre', 'Box'], required: true },
@@ -103,8 +103,8 @@ const SCHEMAS: Record<RequestType, Schema> = {
     ],
   },
   'Cost Center': {
-    icon: Landmark, blurb: 'A cost collector for budgeting and reporting.',
-    identifierLabel: 'Cost center code', identifierHint: 'Proposed code, e.g. CC-SG-2041', identifierRequired: false, emailRequired: false,
+    idMax: 8, nameMax: 30, icon: Landmark, blurb: 'A cost collector for budgeting and reporting.',
+    identifierLabel: 'Cost center code', identifierHint: 'Optional, up to 8 characters (letters, digits, _ . / -), e.g. SG2041. Left blank, a simulated code is generated.', identifierRequired: false, emailRequired: false,
     fields: [
       { key: 'owner', label: 'Cost center owner', kind: 'text', required: true, placeholder: 'Full name' },
       { key: 'unit', label: 'Business unit', kind: 'select', options: ['Sales', 'Operations', 'Finance', 'Quality'], required: true },
@@ -141,17 +141,22 @@ const shortId = (id: string) => (id.length > 12 ? id.slice(0, 8) : id);
 const isHidden = (v: unknown) => v === REDACTED;
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SAP_CODE_RE = /^[A-Za-z0-9_./-]+$/;
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9\-_/. ]{3,}$/;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const addDays = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return isoDate(d); };
 
+// Date-only strings (YYYY-MM-DD) are local calendar days. Full ISO timestamps are instants, so convert
+// to the viewer's local day instead of reading the UTC date.
 function parseDay(s: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
   const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d;
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 function fmtDate(s: string) {
   const d = parseDay(s);
@@ -226,13 +231,15 @@ function validate(v: Values, highMatch: boolean): Values {
   const e: Values = {};
   const s = SCHEMAS[v.type as RequestType];
   if (v.name.trim().length < 2) e.name = 'Enter the legal or master-data name (at least 2 characters).';
+  else if (v.name.trim().length > s.nameMax) e.name = `At most ${s.nameMax} characters (SAP limit for ${v.type}).`;
   if (!v.country) e.country = 'Select a country.';
   const idv = v.identifier.trim();
   if (!idv && s.identifierRequired) e.identifier = `${s.identifierLabel} is required for ${v.type} requests.`;
-  else if (idv && !ID_RE.test(idv)) e.identifier = 'Use 4+ characters: letters, digits, - _ / .';
+  else if (idv.length > s.idMax) e.identifier = `At most ${s.idMax} characters (SAP limit for ${v.type}).`;
+  else if (idv && (v.type === 'Item' || v.type === 'Cost Center' ? !SAP_CODE_RE.test(idv) : !ID_RE.test(idv))) e.identifier = v.type === 'Item' || v.type === 'Cost Center' ? 'Use letters, digits and _ . / - only (no spaces).' : 'Use 4+ characters: letters, digits, - _ / . or space.';
   const em = v.email.trim();
   if (!em && s.emailRequired) e.email = 'A contact email is required for this request type.';
-  else if (em && !EMAIL_RE.test(em)) e.email = 'Enter a valid email address.';
+  else if (em && (!EMAIL_RE.test(em) || em.length > 100)) e.email = 'Enter a valid email address (up to 100 characters).';
   if (v.requester.trim().length < 2) e.requester = 'Enter the requester’s name.';
   if (!v.deadline) e.deadline = 'Pick a deadline.';
   else if (v.deadline < isoDate(new Date())) e.deadline = 'The deadline cannot be in the past.';
@@ -430,7 +437,10 @@ function Scalar({ v }: { v: unknown }) {
   return <>{String(v ?? '—') || '—'}</>;
 }
 
-function DetailsView({ details }: { details: DetailMap }) {
+// Seeded and API-created requests may key details by short field key or by label; show the label.
+const detailLabel = (type: RequestType, key: string) => SCHEMAS[type]?.fields.find(f => f.key === key)?.label ?? key;
+
+function DetailsView({ details, type }: { details: DetailMap; type: RequestType }) {
   const entries = Object.entries(details ?? {});
   if (!entries.length) {
     return (
@@ -441,7 +451,7 @@ function DetailsView({ details }: { details: DetailMap }) {
   }
   return (
     <dl className="rq-kv rq-details">
-      {entries.map(([k, v]) => <div key={k} className={typeof v === 'string' && v.length > 60 ? 'rq-wide' : ''}><dt>{k}</dt><dd><Scalar v={v} /></dd></div>)}
+      {entries.map(([k, v]) => <div key={k} className={typeof v === 'string' && v.length > 60 ? 'rq-wide' : ''}><dt>{detailLabel(type, k)}</dt><dd><Scalar v={v} /></dd></div>)}
     </dl>
   );
 }
@@ -676,9 +686,9 @@ function RequestForm({ role, customerIds, onCreated, onInvestigate }: { role: Ro
         <section className="panel rq-section" aria-labelledby={`${uid}-h-core`}>
           <h2 id={`${uid}-h-core`}><TypeIcon size={18} aria-hidden="true" />2. {type} details</h2>
           <div className="rq-grid">
-            <Wrap {...wp('name')} label={`${type} name`} required hint="Legal or master-data name as it should appear in SAP"><input {...ctl('name')} type="text" autoComplete="off" required /></Wrap>
+            <Wrap {...wp('name')} label={`${type} name`} required hint="Legal or master-data name as it should appear in SAP"><input {...ctl('name')} type="text" autoComplete="off" maxLength={schema.nameMax} required /></Wrap>
             <Wrap {...wp('country')} label="Country" required><select {...ctl('country')} required><option value="">Select…</option>{COUNTRIES.map(c => <option key={c}>{c}</option>)}</select></Wrap>
-            <Wrap {...wp('identifier')} label={schema.identifierLabel} required={schema.identifierRequired} hint={schema.identifierHint}><input {...ctl('identifier')} type="text" autoComplete="off" required /></Wrap>
+            <Wrap {...wp('identifier')} label={schema.identifierLabel} required={schema.identifierRequired} hint={schema.identifierHint}><input {...ctl('identifier')} type="text" autoComplete="off" maxLength={schema.idMax} required={schema.identifierRequired} /></Wrap>
             <Wrap {...wp('email')} label="Contact email" required={schema.emailRequired} hint={schema.emailRequired ? 'Required; also used for duplicate screening' : 'Add one if there is a responsible contact'}><input {...ctl('email')} type="email" autoComplete="off" /></Wrap>
             {schema.fields.map(f => <Wrap key={f.key} {...wp(f.key)} label={f.label} required={f.required} hint={f.hint}>{renderControl(f)}</Wrap>)}
           </div>
@@ -868,7 +878,7 @@ function RequestDetail({ req, audit, role, customerIds, index, total, onPrev, on
 
       <section aria-labelledby="rq-h-det">
         <h3 id="rq-h-det">Request details</h3>
-        <DetailsView details={req.details} />
+        <DetailsView details={req.details} type={req.type} />
       </section>
 
       <section aria-labelledby="rq-h-match">
@@ -1069,7 +1079,7 @@ export default function Requests({ onInvestigate }: { onInvestigate?: (id: strin
             </label>
           ))}
         </div>
-        <p className="rq-role-note"><Info size={14} aria-hidden="true" />Demo role switcher only. It is <strong>not authentication</strong>: your choice is sent as the <code>X-Role</code> header so you can see each approver’s view.</p>
+        <p className="rq-role-note"><Info size={14} aria-hidden="true" /><span>Demo role switcher — explore each approver’s view. This is not authentication.</span></p>
       </fieldset>
 
       <div className="rq-toast-slot" aria-live="polite">

@@ -16,7 +16,7 @@ All data is **synthetic**. Customers, orders, requests and outcomes are illustra
 | API | `server/index.js` | Express 5 routes listed below |
 | Domain rules | `server/domain.js` | Duplicate scoring, request validation, approval routing, redaction, simulated SAP payload |
 | Analytics | `server/analytics.js` | Demand totals, growth windows, forecast backtest, risk and opportunity rules, co-purchase |
-| Storage | `server/db.js` | SQLite through Node's built-in `node:sqlite` |
+| Storage | `server/db.js`, `server/blob-store.js` | Local SQLite; private Vercel Blob snapshots with conditional writes when hosted |
 | Synthetic fixture | `server/seed.js` | Five countries, three products, 18 customer records, 415 orders, four seeded requests |
 
 ## Requirements
@@ -41,7 +41,7 @@ npm run dev
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | API with file watching on port 3001, and Vite on port 5173 |
-| `npm test` | Runs `node --test tests/*.test.js` (34 tests) |
+| `npm test` | Runs `node --test tests/*.test.js` (39 tests) |
 | `npm run build` | Runs `tsc -b`, then `vite build` into `dist/` |
 | `npm start` | Runs the API on port 3001 (set `PORT` to change it) and serves `dist/` as the UI |
 
@@ -137,7 +137,7 @@ npm test
 - `tests/backend.test.js` exercises the persistent API: validation, duplicate handling, approvals, role checks, redaction, SAP gating and non-mutating simulation.
 - `tests/analytics.test.js` covers demand totals, growth windows, forecast backtests, risk and opportunity rules, co-purchase and bad-input handling.
 
-The current suite has 34 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
+The current suite has 39 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
 
 ## Project layout
 
@@ -153,8 +153,16 @@ data/        Local SQLite file (gitignored)
 ## Limits
 
 - Synthetic data only. Do not load real customer, vendor or financial records.
-- No authentication, no real authorisation beyond the demo header, no TLS, no rate limiting.
-- Single-process SQLite with JSON-document storage. No migrations, backups or multi-user concurrency testing.
+- No authentication or identity-based authorisation; the role selector is a demonstration. Local development uses HTTP; Vercel supplies HTTPS. Application-level rate limiting is not implemented.
+- Local SQLite uses JSON-document storage. Hosted Blob storage uses whole-document conditional writes: concurrent modifications return a conflict for refresh/retry. Migrate to PostgreSQL transactions for larger workloads.
 - SAP output is a payload shape. No connection, credentials or reconciliation exists.
 - Forecasts use short synthetic histories. Backtests show the evaluation method, not real forecast accuracy.
-- No hosted deployment and no uploaded demo video.
+- Deployment setup and verification status are in `docs/deployment.md`. No YouTube demo has been uploaded.
+
+## Vercel hosting
+
+The serverless adapter lives in `api/index.js`. It requires a dedicated private Vercel Blob connection and acknowledges mutations only after durable storage succeeds. It does not use ephemeral SQLite on Vercel. See [deployment notes](docs/deployment.md) for setup, constraints and live verification status.
+
+## Export the illustrative dataset
+
+Run `npm run export:data` to generate synthetic customer, product and order CSVs plus the full labelled JSON fixture under `output/data/`. These exports are reproducible and contain no real company records.

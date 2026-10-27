@@ -1,0 +1,10 @@
+.git
+.env*
+.vercel
+data
+tmp
+.venv-pdf
+node_modules
+tests
+docs
+*.log

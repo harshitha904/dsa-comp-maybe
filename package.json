@@ -11,22 +11,28 @@
     "export:data": "node scripts/export-fixture.mjs"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
+    "@xyflow/react": "^12.8.0",
+    "express": "^5.1.0",
+    "lucide-react": "^0.468.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "lucide-react": "^0.468.0",
-    "express": "^5.1.0",
-    "recharts": "^3.0.0",
-    "@xyflow/react": "^12.8.0"
+    "recharts": "^3.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.5.0",
-    "vite": "^6.3.0",
+    "concurrently": "^9.1.2",
     "typescript": "~5.8.3",
-    "concurrently": "^9.1.2"
+    "vite": "^6.3.0"
   },
   "engines": {
     "node": ">=24"
+  },
+  "overrides": {
+    "@vercel/cli-config": {
+      "zod": "^4.6.6"
+    }
   }
 }
