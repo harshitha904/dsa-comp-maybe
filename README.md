@@ -8,11 +8,11 @@ All data is **synthetic**. Customers, orders, requests and outcomes are illustra
 
 | Area | Where | What it does |
 | --- | --- | --- |
-| Control center | `src/App.tsx` | Summary tiles for confirmed units, customer records, pending requests and kept-out signals |
-| Graph explorer | `src/components/Intelligence.tsx` | Customer, product and country graph; record inspector; duplicate evidence; read-only consolidation preview |
-| MDM workspace | `src/components/Requests.tsx` | Request intake with duplicate check, approval actions, audit history, simulated SAP payload download |
-| Regional intelligence | `src/components/Analytics.tsx` | Demand trend, country heatmap, country detail, next-month forecast, forecast accuracy check, risks and opportunities |
-| Demo and methodology | `src/App.tsx` | Walkthrough and stated prototype boundaries |
+| Request | `src/components/RequestPage.tsx` | Search-first duplicate check, paste-an-email intake, one form with the approval route and Finance-only fields shown up front |
+| Track | `src/components/Track.tsx` | Request list, stage progress bar, approve / ask for info / reject by role, Teams nudge (simulated), audit history, simulated SAP B1 payload |
+| Regional view | `src/components/Regional.tsx` | Country × product table with 3-month growth, monthly demand and forecast, forecast accuracy check, prioritised risks and opportunities |
+| Graph | `src/components/Graph.tsx` | Customer, product and country graph; duplicate evidence; read-only merge preview |
+| How it works | `src/App.tsx` | Process flow to SAP B1, what is not in version 1, demo data reset |
 | API | `server/index.js` | Express 5 routes listed below |
 | Domain rules | `server/domain.js` | Duplicate scoring, request validation, approval routing, redaction, simulated SAP payload |
 | Analytics | `server/analytics.js` | Demand totals, growth windows, forecast backtest, risk and opportunity rules, co-purchase |
