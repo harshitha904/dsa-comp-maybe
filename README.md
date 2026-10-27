@@ -9,9 +9,11 @@ All data is **synthetic**. Customers, orders, requests and outcomes are illustra
 | Area | Where | What it does |
 | --- | --- | --- |
 | Request | `src/components/RequestPage.tsx` | Search-first duplicate check, paste-an-email intake, one form with the approval route and Finance-only fields shown up front |
-| Track | `src/components/Track.tsx` | Request list, stage progress bar, approve / ask for info / reject by role, Teams nudge (simulated), audit history, simulated SAP B1 payload |
+| Track | `src/components/Track.tsx` | Request list, stage progress bar, approve / ask for info / reject by role, simulated Teams approval card, auto-escalation after the SLA, audit history, simulated SAP B1 payload |
 | Regional view | `src/components/Regional.tsx` | Country × product table with 3-month growth, monthly demand and forecast, forecast accuracy check, prioritised risks and opportunities |
 | Graph | `src/components/Graph.tsx` | Customer, product and country graph; duplicate evidence; read-only merge preview |
+| Rules | `src/components/Rules.tsx` | MDM team edits approval steps, required fields (incl. Finance-only) and the escalation time without IT; applies to new requests only |
+| Impact | `src/components/Impact.tsx` | Amy's 18-day request vs MasterGraph timeline, live counts from the data, adjustable savings estimate |
 | How it works | `src/App.tsx` | Process flow to SAP B1, what is not in version 1, demo data reset |
 | API | `server/index.js` | Express 5 routes listed below |
 | Domain rules | `server/domain.js` | Duplicate scoring, request validation, approval routing, redaction, simulated SAP payload |

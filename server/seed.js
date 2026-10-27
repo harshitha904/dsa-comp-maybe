@@ -49,5 +49,5 @@ export function seedData(now = new Date()) {
     ...r.approvals.map((actor,j)=>({id:`AUD-${i}-${j}`,requestId:r.id,action:'approve',actor,timestamp:at(-2),details:'Synthetic stage approval'})),
     ...(r.status==='Clarification'?[{id:`AUD-${i}-clarify`,requestId:r.id,action:'clarify',actor:r.stage,timestamp:at(-1),details:'Confirm sterile packaging specification and shelf life'}]:[])
   ]);
-  return {customers,products,orders,requests,audit};
+  return {customers,products,orders,requests,audit,config:[]};
 }

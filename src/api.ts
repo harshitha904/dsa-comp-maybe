@@ -25,7 +25,8 @@ export const errorText = (e: unknown) => e instanceof Error ? e.message : 'Somet
 // Mirrors server/domain.js so the form can show the route and required fields up front.
 export type RequestType = 'Customer'|'Vendor'|'Item'|'Cost Center';
 export const routes: Record<RequestType, Role[]> = {Customer:['Sales','Finance','BU Head'],Vendor:['Finance','Quality','BU Head'],Item:['Quality','Finance','BU Head'],'Cost Center':['Finance','BU Head']};
-export const detailFields: Record<RequestType, {key:string;label:string;sensitive?:boolean;number?:boolean}[]> = {
+export type Field = {key:string;label:string;sensitive?:boolean;number?:boolean};
+export const detailFields: Record<RequestType, Field[]> = {
  Customer:[{key:'segment',label:'Customer segment'},{key:'terms',label:'Payment terms',sensitive:true},{key:'credit',label:'Credit limit (USD)',sensitive:true,number:true}],
  Vendor:[{key:'category',label:'Vendor category'},{key:'terms',label:'Payment terms',sensitive:true},{key:'bankCountry',label:'Bank country'},{key:'contact',label:'Contact person'}],
  Item:[{key:'line',label:'Product line'},{key:'uom',label:'Unit of measure'},{key:'cost',label:'Standard cost (USD)',number:true}],
@@ -34,7 +35,11 @@ export const detailFields: Record<RequestType, {key:string;label:string;sensitiv
 export const countries = ['Singapore','Malaysia','Thailand','Indonesia','Vietnam'];
 export const countryCode: Record<string,string> = {Singapore:'SG',Malaysia:'MY',Thailand:'TH',Indonesia:'ID',Vietnam:'VN'};
 
-export type Request = {id:string;type:RequestType;name:string;country:string;identifier:string;email:string;details:Record<string,string|number|boolean>;requester:string;status:'Pending'|'Approved'|'Rejected'|'Clarification';stage:string;approvals:string[];createdAt:string;deadline:string;priority:number;duplicateOverride?:string};
+export type Request = {id:string;type:RequestType;name:string;country:string;identifier:string;email:string;details:Record<string,string|number|boolean>;requester:string;status:'Pending'|'Approved'|'Rejected'|'Clarification';stage:string;route?:Role[];escalatedStage?:string;escalatedTo?:string;approvals:string[];createdAt:string;deadline:string;priority:number;duplicateOverride?:string};
 export type Audit = {id:string;requestId:string;action:string;actor:string;timestamp:string;details:string};
 export type Customer = {id:string;name:string;country:string;identifier:string;email:string;aliases:string[]};
 export type Match = {customer:Customer;score:number;evidence:string[]};
+
+export type Config = {routes:Record<RequestType, Role[]>; fields:Record<RequestType, Field[]>; slaHours:number};
+export const defaultConfig: Config = {routes, fields:detailFields, slaHours:48};
+export const routeOf = (r: Request, config?: Config) => r.route?.length ? r.route : (config ?? defaultConfig).routes[r.type];

@@ -31,6 +31,7 @@ export function memoryStore(initial) {
   return {
     all: () => structuredClone(state),
     put(collection, item) {
+      state[collection] ??= [];
       const index = state[collection].findIndex(row => row.id === item.id);
       if (index < 0) state[collection].push(structuredClone(item));
       else state[collection][index] = structuredClone(item);

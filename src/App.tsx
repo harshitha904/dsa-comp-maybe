@@ -5,9 +5,11 @@ const RequestPage = lazy(() => import('./components/RequestPage'));
 const Track = lazy(() => import('./components/Track'));
 const Regional = lazy(() => import('./components/Regional'));
 const Graph = lazy(() => import('./components/Graph'));
+const Rules = lazy(() => import('./components/Rules'));
+const Impact = lazy(() => import('./components/Impact'));
 
-type Page = 'request'|'track'|'regional'|'graph';
-const pages: {id:Page;name:string}[] = [{id:'request',name:'Request'},{id:'track',name:'Track'},{id:'regional',name:'Regional view'},{id:'graph',name:'Graph'}];
+type Page = 'request'|'track'|'regional'|'graph'|'rules'|'impact';
+const pages: {id:Page;name:string}[] = [{id:'request',name:'Request'},{id:'track',name:'Track'},{id:'regional',name:'Regional view'},{id:'graph',name:'Graph'},{id:'rules',name:'Rules'},{id:'impact',name:'Impact'}];
 const isPage = (p: string): p is Page => pages.some(x => x.id === p);
 
 export default function App() {
@@ -46,6 +48,8 @@ export default function App() {
     {page === 'track' && <Track key={version} role={role} selectedId={trackId} onSelect={id => go('track', id)} toast={setToast}/>}
     {page === 'regional' && <Regional key={version} onOpenCustomer={openCustomer} onOpenRequest={id => go('track', id)}/>}
     {page === 'graph' && <Graph key={version} initialCustomerId={customerId}/>}
+    {page === 'rules' && <Rules key={version} role={role} toast={setToast}/>}
+    {page === 'impact' && <Impact key={version}/>}
    </Suspense>
   </main>
   {about && <div className="modal-backdrop" onClick={() => setAbout(false)}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Check, Lock, Mail, Search } from 'lucide-react';
-import { api, countries, detailFields, errorText, roleLabel, routes, type Match, type RequestType, type Role } from '../api';
+import { api, countries, defaultConfig, detailFields, errorText, roleLabel, type Config, type Match, type RequestType, type Role } from '../api';
 import './RequestPage.css';
 
 const types: RequestType[] = ['Customer', 'Vendor', 'Item', 'Cost Center'];
@@ -26,7 +26,7 @@ type Values = Record<string, string>;
 const blank = (type: RequestType, name = ''): Values => ({type, name, country:'', identifier:'', email:'', requester:'', deadline:'', priority:'2'});
 
 // Rule-based extraction from labelled lines; the requester still reviews every field.
-function parseEmail(text: string): Values {
+function parseEmail(text: string, allFields: Config['fields'] = detailFields): Values {
  const out: Values = {};
  const label = new Map<string, string>();
  for (const line of text.split('\n')) { const m = /^\s*([A-Za-z][A-Za-z ()/.-]{0,30}?)\s*:\s*(.+?)\s*$/.exec(line); if (m && !label.has(m[1].toLowerCase())) label.set(m[1].toLowerCase(), m[2]); }
@@ -40,7 +40,7 @@ function parseEmail(text: string): Values {
  out.country = countries.find(c => c.toLowerCase() === pick('country').toLowerCase()) ?? countries.find(c => text.includes(c)) ?? '';
  out.requester = pick('from').replace(/<.*>/, '').trim();
  if (/urgent|asap/i.test(subject + text)) out.priority = '3';
- for (const fields of Object.values(detailFields)) for (const f of fields) { const v = pick(f.label.toLowerCase(), f.label.toLowerCase().replace(/ \(usd\)/, ''), f.key.toLowerCase()); if (v && !out[f.key]) out[f.key] = v.replace(/[$,]/g, f.number ? '' : '$&'); }
+ for (const fields of Object.values(allFields)) for (const f of fields) { const v = pick(f.label.toLowerCase(), f.label.toLowerCase().replace(/ \(usd\)/, ''), f.key.toLowerCase()); if (v && !out[f.key]) out[f.key] = v.replace(/[$,]/g, f.number ? '' : '$&'); }
  return Object.fromEntries(Object.entries(out).filter(([, v]) => v));
 }
 
@@ -57,6 +57,8 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
  const [blocked, setBlocked] = useState<Match[]>([]);
  const [error, setError] = useState('');
  const [saving, setSaving] = useState(false);
+ const [config, setConfig] = useState<Config>(defaultConfig);
+ useEffect(() => { api<Config>('/config').then(setConfig).catch(() => {}); }, []);
 
  useEffect(() => {
   if (query.trim().length < 3) { setMatches([]); return; }
@@ -67,17 +69,17 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
  }, [query, type]);
 
  const t = (values.type || type) as RequestType;
- const fields = detailFields[t];
+ const fields = config.fields[t];
  const required = ['name', 'country', 'requester', ...(t === 'Customer' || t === 'Vendor' ? ['identifier', 'email'] : []), ...fields.map(f => f.key)];
  const missing = required.filter(k => !String(values[k] ?? '').trim());
  const set = (k: string, v: string) => setValues(s => ({...s, [k]: v}));
- const route = useMemo(() => routes[t], [t]);
+ const route = useMemo(() => config.routes[t], [config, t]);
 
  function startForm(prefill: Values = {}) {
   setValues({...blank(type, query), ...prefill}); setStep('form'); setBlocked([]); setOverride(''); setError('');
  }
  function fromEmail() {
-  const parsed = parseEmail(email);
+  const parsed = parseEmail(email, config.fields);
   if (parsed.type) setType(parsed.type as RequestType);
   setQuery(parsed.name ?? ''); setValues({...blank((parsed.type as RequestType) ?? type), ...parsed}); setMode('form'); setStep('form'); setBlocked([]); setError('');
  }
@@ -140,7 +142,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
    <aside className="card side">
     <h3>Approval route</h3>
     <ol className="route">{[...route.map(r => roleLabel[r]), 'MDM final check', 'Created in SAP B1'].map((r, i) => <li key={r}><span>{i + 1}</span>{r}</li>)}</ol>
-    <p className="muted small">Each approver is notified in Teams when it’s their turn.</p>
+    <p className="muted small">Each approver gets a Teams card when it’s their turn. No reply in {config.slaHours}h escalates it.</p>
     {fields.some(f => f.sensitive) && <p className="muted small lock-note"><Lock size={12}/>Locked fields are visible to Finance and the MDM team only.{role !== 'Finance' && role !== 'Admin' ? ' You can enter them but not view them later.' : ''}</p>}
    </aside>
   </section>}
