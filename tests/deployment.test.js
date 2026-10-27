@@ -80,3 +80,17 @@ test('missing durable storage fails closed on raw HTTP reads', async () => {
     assert.ok((await response.json()).error);
   });
 });
+
+import { loadBlobState } from '../server/blob-store.js';
+test('private compressed GET weak ETags normalize to the origin conditional-write token', async () => {
+  const result = await loadBlobState({ getBlob: async () => ({ statusCode: 200, stream: new Response(JSON.stringify({ requests: [] })).body, blob: { etag: 'W/"origin-hash"' } }) });
+  assert.equal(result.etag, '"origin-hash"');
+});
+
+test('competing cold-start initialization requires a successful durable read with an ETag', async () => {
+  let calls = 0;
+  await assert.rejects(loadBlobState({
+    getBlob: async () => ++calls === 1 ? null : { statusCode: 200, blob: { etag: '' } },
+    putBlob: async () => { throw new Error('competing write or storage outage'); },
+  }), /competing write or storage outage/);
+});

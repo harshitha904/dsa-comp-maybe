@@ -4,17 +4,17 @@ import { seedData } from './seed.js';
 const pathname = 'mastergraph/state-v1.json';
 const options = { access: 'private', addRandomSuffix: false, contentType: 'application/json' };
 
-export async function loadBlobState() {
-  let result = await get(pathname, { access: 'private', useCache: false });
+export async function loadBlobState({ getBlob = get, putBlob = put } = {}) {
+  let result = await getBlob(pathname, { access: 'private', useCache: false });
   if (!result) {
     try {
-      await put(pathname, JSON.stringify(seedData()), { ...options, allowOverwrite: false });
+      await putBlob(pathname, JSON.stringify(seedData()), { ...options, allowOverwrite: false });
     } catch (error) {
       // Accept a competing cold start only after a valid durable read.
-      result = await get(pathname, { access: 'private', useCache: false });
+      result = await getBlob(pathname, { access: 'private', useCache: false });
       if (!result || result.statusCode !== 200 || !result.blob.etag) throw error;
     }
-    result = await get(pathname, { access: 'private', useCache: false });
+    result = await getBlob(pathname, { access: 'private', useCache: false });
   }
   if (!result || result.statusCode !== 200) throw new Error('Durable state unavailable');
   const state = JSON.parse(await new Response(result.stream).text());

@@ -2,7 +2,7 @@
 
 Checked 28 October 2026 (Singapore time).
 
-- `npm test`: 39/39 passed. Includes API persistence, type validation, duplicate conflicts, approval permissions, redaction, SAP mappings, simulation conservation, forecast holdout isolation and independent MAE recomputation, risk and opportunity evidence, and serverless durable-write acknowledgement/conflict/failure tests.
+- `npm test`: 41/41 passed. Includes API persistence, type validation, duplicate conflicts, approval permissions, redaction, SAP mappings, simulation conservation, forecast holdout isolation and independent MAE recomputation, risk and opportunity evidence, and serverless durable-write acknowledgement/conflict/failure tests.
 - `npm run build`: TypeScript and production Vite build passed. Main routes are code-split.
 - `git diff --check`: passed.
 - Production dependency audit: zero vulnerabilities reported.

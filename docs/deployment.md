@@ -40,19 +40,50 @@ SQLite files are excluded. A missing Blob connection fails closed with HTTP 503.
 The connector's project-create endpoint returned 403, but the documented CLI
 fallback succeeded using the existing CLI login. Resources were created only for
 this project. Production was deployed from the working tree; the parent owns the
-final Git commit and push. Git integration is not yet connected, so a push alone
-should not be assumed to redeploy.
+final Git commit and push. Git integration is connected to `tancysam/dsa-comp-maybe`; subsequent pushes
+use Vercel Git deployments. Production branch is `main`.
 
-Validation: 39 tests pass, including raw HTTP success only after durable save,
+Validation: 41 tests pass, including raw HTTP success only after durable save,
 HTTP 409 on conditional-write conflicts, HTTP 503 on storage failures, missing
 credentials failing closed, and snapshot transaction rollback/isolation. Build
 passes. A scoped Zod override upgrades the SDK's transitive pinned dependency;
 `npm audit --omit=dev` and full installation audit report zero vulnerabilities.
 
-Live API verification and cross-deployment persistence results follow below.
+Live verification completed on 2026-10-28: bootstrap and analytics HTTP 200;
+synthetic Customer creation HTTP 201; Sales, Finance and BU Head approvals HTTP
+200; SAP JSON export HTTP 200. Approved request
+`d9d54679-5391-400f-b535-9646fa1ab969` persisted on a fresh read across a subsequent
+production deployment. The public executive summary PDF returned HTTP 200 and
+matched the local file byte-for-byte (68,805 bytes).
+
+A live-only issue was caught and fixed: private compressed Blob GET responses
+return weak ETags (`W/"hash"`), whereas conditional writes require the quoted
+origin token (`"hash"`). The adapter normalizes this token; targeted tests cover
+that behavior and cold-start read validation. No successful mutation is returned
+before the conditional save completes.
 
 ## References
 
 - https://vercel.com/docs/vercel-blob/using-blob-sdk (conditional writes with `ifMatch`)
 - https://vercel.com/docs/vercel-blob/private-storage (private reads and cache control)
 - https://vercel.com/docs/functions/runtimes/node-js
+
+## Final deployment evidence
+
+Production deployment `dpl_8ANSZFor74KBFuxQcurbZsesU6w3` is READY:
+https://dsa-comp-maybe-5qkbarnrf-samuels-projects-871fb3f2.vercel.app
+
+Stable public alias: https://dsa-comp-maybe.vercel.app
+
+Source baseline: pushed `origin/main` commit `a7e9e2a`, plus the follow-up optional
+storage transport injection and two regression tests (default production behavior
+unchanged). Parent owns committing/pushing that follow-up and this document.
+
+Live simultaneous writes returned `[409, 409, 201]`; a fresh bootstrap confirmed
+all acknowledged writes were retained. Conflicting requests received explicit
+refresh-and-retry errors. The final deployment retained the earlier approved
+Customer request. Synthetic verification records intentionally remain in the demo.
+
+The project API confirms GitHub integration `tancysam/dsa-comp-maybe` and production
+branch `main`. Subsequent pushes use Vercel's connected Git workflow. No secrets,
+local OIDC tokens, `.vercel` mapping, or SQLite files are tracked in Git.

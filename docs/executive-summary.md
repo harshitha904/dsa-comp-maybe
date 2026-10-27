@@ -25,7 +25,7 @@ MasterGraph is a working prototype that covers four steps:
 - An Express 5 API backed by SQLite, using Node's built-in SQLite module. Data persists between runs and can be reset to the synthetic fixture.
 - Server-side validation, duplicate scoring, approval routing, audit logging and redaction.
 - A SAP-shaped payload for approved requests, labelled `simulated: true`. **No live SAP connection exists, and nothing is sent to SAP.**
-- 39 automated tests (`npm test`).
+- 41 automated tests (`npm test`).
 - A synthetic fixture: five countries (Singapore, Malaysia, Thailand, Indonesia, Vietnam), three products (A, B, C), 18 customer records, and one deliberate duplicate pair.
 
 ### Access and visibility

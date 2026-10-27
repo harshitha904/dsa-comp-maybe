@@ -41,7 +41,7 @@ npm run dev
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | API with file watching on port 3001, and Vite on port 5173 |
-| `npm test` | Runs `node --test tests/*.test.js` (39 tests) |
+| `npm test` | Runs `node --test tests/*.test.js` (41 tests) |
 | `npm run build` | Runs `tsc -b`, then `vite build` into `dist/` |
 | `npm start` | Runs the API on port 3001 (set `PORT` to change it) and serves `dist/` as the UI |
 
@@ -137,7 +137,7 @@ npm test
 - `tests/backend.test.js` exercises the persistent API: validation, duplicate handling, approvals, role checks, redaction, SAP gating and non-mutating simulation.
 - `tests/analytics.test.js` covers demand totals, growth windows, forecast backtests, risk and opportunity rules, co-purchase and bad-input handling.
 
-The current suite has 39 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
+The current suite has 41 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
 
 ## Project layout
 
