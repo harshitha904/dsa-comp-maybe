@@ -1,81 +1,59 @@
 # MasterGraph: Executive Summary
 
-Source Markdown for the two-page handout. The rendered PDF is at `output/pdf/executive-summary.pdf`. All data in the prototype is synthetic. Figures are from the prototype fixture, not from a real business.
+Two-page summary for the 2-minute pitch. All prototype data is synthetic; every figure below comes from the prototype and is labelled where it rests on an assumption.
+
+**Live prototype:** https://dsa-comp-maybe-two.vercel.app · **Code:** https://github.com/harshitha904/dsa-comp-maybe (branch `ui-redesign`) · **Demo video:** _add YouTube link_
 
 ---
 
-## Page 1 of 2
+## Page 1 of 2: The problem and our solution
 
 ### The problem
+Master data at Lives Group runs on email. A new customer, vendor, item or cost center starts as free text, bounces back for missing fields, and waits in each approver's inbox until they notice it. Amy's item request in the brief took **18 days**. Nobody can see where a request is, there's no reliable audit trail, and bank and credit details travel by plain email.
 
-The same customer is often entered more than once. "National University Hospital" and "NUH Singapore" can exist as separate records with different account terms. Approvals move by email, and nobody sees the duplicate, the decision trail and the downstream effect in one place.
+Because SPD, QTS and QTG each key records into the same SAP B1, the **same hospital ends up under two entities**. That splits its purchase history, so the regional view of demand for Products A, B and C is wrong before anyone starts forecasting, and the forecast itself is a simple moving average.
 
-### What MasterGraph does
+**Our focus:** fix master data at the point of entry, because clean records are what make faster approvals and trustworthy regional insight possible.
 
-MasterGraph is a working prototype that covers four steps:
+### MasterGraph: one flow from request to SAP B1 to regional insight
 
-1. **Prevent.** A new customer request is checked against existing customer records and against non-rejected requests of the same type before it is saved. Each match shows its evidence: an exact identifier, an exact email, an exact name or alias, or a similar name. A match at score 80 or above needs a written override justification of at least 10 characters.
-2. **Investigate.** The graph explorer shows customers, products and countries with confirmed orders. A reviewer selects a record, reads its duplicate evidence and sees its place in the network.
-3. **Preview.** A consolidation preview moves one record's orders into a chosen target in a read-only simulation. Combined units are conserved, and nothing is written.
-4. **Approve.** Each request type follows a fixed route. A Customer request goes from Sales to Finance to BU Head. The server enforces the route, and every creation and action is written to an audit trail in UTC.
+| Step | What happens | Pain point it removes |
+|---|---|---|
+| **Request** | Pasted emails are sorted into *purchase order*, *enquiry* or *setup request*, with the reasons shown. Only setup requests reach the form. The requester searches first and sees existing matches (e.g. "NUH Singapore, 100%") before creating anything. | Duplicates, incomplete forms, orders mixed with MDM requests |
+| **Form** | One form per record type with every required field, the approval route shown up front, and Finance-only fields locked. | Missing fields, sensitive data in email |
+| **Approve** | Each approver gets a **Teams card** and approves from there. No reply in 48h → automatic reminder and escalation. Everyone sees a live progress bar and full history. | Waiting in inboxes, no status, no audit trail |
+| **Rules** | The MDM team adds a field, an approval step or a new business unit themselves. In-flight requests keep their route. | Going back to IT for every change |
+| **SAP B1** | After the MDM final check, the record goes to SAP B1 in the Service Layer format (simulated in the prototype). | Manual retyping |
 
-### What is in the prototype
-
-- A React and TypeScript frontend with four working workspaces: control center, graph explorer, MDM workspace and regional intelligence. A demo and methodology page explains the boundaries.
-- An Express 5 API backed by SQLite, using Node's built-in SQLite module. Data persists between runs and can be reset to the synthetic fixture.
-- Server-side validation, duplicate scoring, approval routing, audit logging and redaction.
-- A SAP-shaped payload for approved requests, labelled `simulated: true`. **No live SAP connection exists, and nothing is sent to SAP.**
-- 41 automated tests (`npm test`).
-- A synthetic fixture: five countries (Singapore, Malaysia, Thailand, Indonesia, Vietnam), three products (A, B, C), 18 customer records, and one deliberate duplicate pair.
-
-### Access and visibility
-
-- Customer identifiers and emails are visible to all roles, because they are synthetic.
-- Bank account and credit or payment terms are restricted. Only Finance and Admin see them. Other roles see `[redacted]`.
-- Audit notes are visible to all roles on purpose, so collaborators can see why a request was clarified or rejected.
-
-### What it does not do
-
-- It does not authenticate users. The role selector is a demo switch, not a security control.
-- It does not connect to SAP, send email, or run on hosted infrastructure.
-- It does not yet show a measured benefit. Section 4 of the production plan defines the pilot KPIs. None has been measured.
+### Why this over the alternatives
+- **Email + Excel template:** free, but it's today's 18-day process.
+- **SharePoint list + Power Automate:** cheap, but only exact-match duplicate checks and no regional view.
+- **Enterprise MDM suite (e.g. SAP MDG):** powerful, but built for S/4HANA scale and overkill for SAP B1.
+- **MasterGraph:** sits on what Lives Group already uses (Microsoft 365, Teams, SAP B1) and fixes intake, approvals and analytics together.
 
 ---
 
-## Page 2 of 2
+## Page 2 of 2: Regional view, impact and business case
 
-### Regional intelligence
+### Regional business view (Oct 2025 – Sep 2026, 12 months)
+- **Measure:** confirmed purchase orders in units, for Products A, B, C across Singapore, Malaysia, Thailand, Indonesia and Vietnam, also split by entity. **13 enquiries and setup requests are kept out of demand.**
+- **Growth** = confirmed units in the last 3 months vs the 3 months before. Region: 25,860 units, **−5.2%**. Vietnam **+17.8%**, Malaysia **−50.5%**.
+- **Better forecasting:** instead of one moving average, three methods (average, linear trend, Holt's smoothing) are each tested on the last 6 months, **per country**. A newer method is used only if it beats the average. Holt's smoothing wins for the region (2.6% error vs 3.0% for the average); Singapore keeps the average because nothing beat it.
+- **Early warning:** customers still ordering but down 15%+ are flagged before they stop (Selangor Healthcare, −19.6%).
 
-The regional intelligence page uses confirmed orders only:
+**Recommended actions:** (1) contact the Malaysian customer who stopped ordering and review Product A accounts there; (2) reduce reliance on Siam Hospital Group (73% of Thailand); (3) cross-sell Product B to customers who only buy Product A; (4) link the NUH records under SPD and QTS, whose 1,979 units are currently split.
 
-- **Demand trend and heatmap:** confirmed units by month and by country, with product filters.
-- **Next-month forecast:** two models, compared by walk-forward backtest. The baseline is the historical average. The candidate is a linear trend fitted by ordinary least squares. A candidate is chosen only if it beats the baseline by more than a 2% margin.
-- **Results vary by series.** On the current synthetic fixture, the baseline wins for the all-product view, Product A, Product B and Singapore. The linear trend wins for Product C, Thailand, Malaysia, Indonesia and Vietnam. The report shows each winner and its error, so a losing candidate is reported as a loss.
-- **Risks:** declining demand, customer concentration, lapsed customers, duplicate master data and overdue requests.
-- **Opportunities:** accelerating demand, unconverted enquiry and setup pipeline, and cross-sell from co-purchase patterns. Enquiry and setup signals are shown as pipeline and never counted as demand.
+### Expected impact (assumptions, adjustable in the app)
+- **18 → ~3.5 days** per request (at most 6.5 with 48h escalation), assuming each approver acts within a day.
+- **~64 staff hours a month** saved on chasing, keying and duplicate clean-up, and **~36 duplicate records avoided a year** (assumes 60 requests a month and a 5% duplicate rate).
 
-Risks and opportunities are derived from the same confirmed-order data as the charts, so they can be checked against the underlying numbers.
+### Business case
+- **Effort:** the MDM team configures fields, steps and escalation themselves. A lean team of 2 people for 6 weeks adds Microsoft 365 sign-in, Teams cards (Power Automate) and the SAP B1 Service Layer link, plus a few SAP partner days.
+- **Cost:** about **S$45k one-off** (assumption); running cost is hosting only. At S$45 per staff hour that saves **~S$35k a year → payback in ~16 months**, before counting cleaner forecasts.
+- **Adoption:** approvers never leave Teams; the MDM mailbox auto-replies with the form link and pasted emails are pre-filled; requesters see status themselves, so the "any update?" emails stop.
+- **Pilot:** 6 weeks, one country and one entity, measuring cycle time, duplicates caught and the share of requests through MasterGraph.
 
-### Controls and their limits
+### Not in version 1, and why
+Live SAP connection (needs sandbox access), real sign-in (role switcher is for the demo), seasonal forecasting (needs more than 12 months of history), automatic merging of duplicates (a person should confirm).
 
-| Control | Current behaviour | Limit |
-| --- | --- | --- |
-| Duplicate prevention | Enforced on the server at score 80 or above | Scores are heuristic, not probabilities |
-| Approval routing | Enforced on the server by stage role | Roles come from a request header, not a login |
-| Audit trail | Records creation and each action, with notes | Actor is a demo role, not a verified person |
-| Sensitive fields | Bank account and credit or payment terms hidden from non-Finance roles | Restricted field list is fixed in code |
-| SAP export | Simulated payload for approved requests; Finance or Admin only | No connection, credentials or reconciliation |
-| Consolidation preview | Read-only; combined units conserved | Does not merge anything |
-
-### Path to a pilot
-
-The proposed pilot runs for six weeks in one country and one business entity, using agreed data-handling terms. Week 1 confirms the duplicate rules and baselines with business owners. Weeks 2 to 4 are supervised use. Weeks 5 and 6 measure the KPIs and review them. The pilot does not post to SAP.
-
-**Effort and cost (planning estimate, not a quote):** 12 to 18 person-weeks at SGD 3,000 to 4,000 per person-week, giving **SGD 36,000 to 72,000**. This equals a team of two to three people for six weeks. It excludes hosting, licences, legal review and contingency. The assumptions are in `docs/production-plan.md`.
-
-### Requests for the next step
-
-- Agreement on the pilot country and business entity.
-- Named business owners for customer and vendor master-data rules.
-- Confirmation of the data-handling terms before any real record is loaded.
-- Access to a SAP Business One sandbox if the pilot moves to integration.
+**Assumptions:** all data is synthetic; the duplicate, the Malaysian drop-off, Vietnam's growth and the Thailand concentration were planted to reflect the brief. Cost and time figures are estimates for Lives Group to replace with their own.

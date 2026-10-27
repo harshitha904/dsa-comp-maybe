@@ -12,26 +12,29 @@ npm run dev
 1. Open http://127.0.0.1:5173. It opens on **Request**.
 2. Click **ⓘ** (top right), then **Reset demo data**. This also restores the default rules.
 3. Set **Acting as** (top right) to **Sales**.
+4. Rehearse once: the Request scene now has two sample emails.
 
 Numbers quoted below are from the current seed. If yours differ, read what is on screen.
 
 ---
 
-## Scene 1: Request – stop duplicates at the start (0:00–0:35)
+## Scene 1: Request – sort the email, stop duplicates (0:00–0:40)
 
 **Do:** Type **National University Hosp** in the search box.
 
-> "Today a new customer starts as a free-text email. Here, the requester searches first, and finds this hospital already exists twice, under two names."
+> "A requester searches first, and finds this hospital already exists twice, under two names."
 
-**Do:** Click **Or paste a request email**, **Use sample**, **Fill the form**.
+**Do:** Click **Or paste a request email**, **Sample: Order**, **Read email**.
 
-> "If it's still an email, paste it and the fields fill in. They can see who approves it, and credit terms are Finance-only."
+> "Emails still work. This one has a PO number and quantities, so it's an order: it counts as demand and never reaches the MDM team."
 
-**Do:** Click **Submit request**. It opens Track.
+**Do:** Click **Sample: Setup**, **Read email**, **Fill the form**, then **Submit request**. It opens Track.
+
+> "This one asks for a new customer, so the form fills itself, shows who approves it, and keeps credit terms Finance-only."
 
 ---
 
-## Scene 2: Track – status, Teams and escalation (0:35–1:15)
+## Scene 2: Track – status, Teams and escalation (0:40–1:15)
 
 **Point at** the yellow banner and the **Escalated** count.
 
@@ -69,25 +72,25 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 ## Scene 5: Regional view – demand, forecast, actions (1:50–2:30)
 
-**Do:** Open **Regional view**.
+**Do:** Open **Regional view**. Point at the bubble map.
 
-> "Confirmed orders for Products A, B and C, five countries, 12 months. Enquiries and setup requests are kept out of demand. Growth is the last three months against the three before, and Malaysia is down by more than half."
+> "Confirmed orders only, five countries, 12 months. Size is volume, colour is three-month growth: Malaysia is down by half, Vietnam is up 18%."
 
-**Point at** *Which forecast is more accurate?*
+**Do:** Scroll to *Which forecast is more accurate?*
 
-> "We test today's average method against a trend model on the last six months and use whichever is more accurate."
+> "Instead of one moving average, we test three methods on the last six months for each country and use the most accurate. Here Holt's smoothing wins overall; Singapore keeps the simple average."
 
-**Point at** *What to do next.*
+**Do:** Scroll to *Early warning*.
 
-> "Each signal has an action: call the Malaysian customer who stopped ordering, reduce reliance on one buyer in Thailand, and cross-sell Product B."
+> "And we catch drop-off early: Selangor is still ordering but down 20%. Call them before they stop, like Johor already has."
 
 ---
 
 ## Scene 6: Impact (2:30–2:50)
 
-**Do:** Open **Impact**.
+**Do:** Open **Impact**. Scroll down to *Cost and payback*.
 
-> "Amy's request took 18 days by email. With MasterGraph it's about three and a half, and never more than six and a half with escalation. On our assumptions that's around 64 staff hours a month, and the sliders let Lives Group plug in their own numbers."
+> "Amy's request took 18 days by email; here it's about three and a half. On our assumptions that's around S$35,000 a year in staff time, paying back a small pilot in about 16 months. Lives Group can drag in their own numbers."
 
 ---
 
@@ -101,6 +104,12 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 **How does escalation work in production?**
 A scheduled flow (for example Power Automate, hourly) runs the same check. Here it runs when Track opens.
+
+**Is the email sorting AI?**
+It's rule-based on purpose: every label shows the phrases that triggered it, so the MDM team can trust and correct it. A language model could replace the rules later behind the same screen.
+
+**Why not just use the newest forecasting model?**
+Because it isn't always better. Each country's model must beat the simple average on months it hasn't seen. Singapore stays on the average because nothing beat it.
 
 **Are the Impact numbers measured?**
 No. The 18 days comes from the brief; MasterGraph timing assumes each approver acts within a day. Savings use the assumptions on the sliders. The pilot would measure them.
