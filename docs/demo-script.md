@@ -29,7 +29,7 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 **Do:** Click **Or paste a request email**, then **Use sample**, then **Fill the form**.
 
-> "If the request is still an email, they paste it. The fields are pulled out automatically, and the requester checks them. One form, with every required field, so nothing bounces back."
+> "If the request is still an email, they paste it. The fields are pulled out automatically, and the requester checks them."
 
 **Point at** the **Approval route** panel and a **Finance only** field.
 
@@ -43,19 +43,19 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 **Show:** the progress bar on Saigon Heart Clinic.
 
-> "This answers Amy's question from the brief: where is my request? It's with Sales, it's been waiting since today, and it's due on the needed-by date. If an approver is slow, anyone can nudge them in Teams."
+> "This answers Amy's question from the brief: where is my request? It's with Sales, it's been waiting since today, and it's due on the needed-by date. Slow approver? Nudge them in Teams."
 
 **Do:** Click **Approve as Sales**. Switch **Acting as** to **Finance**.
 
-> "Now it's Finance's turn, and it shows up in their *Waiting on me* list. Finance can see the credit terms, which Sales cannot."
+> "Now it's in Finance's *Waiting on me* list, and only Finance sees the credit terms."
 
 **Do:** Approve as **Finance**. Switch to **BU Head** and approve. Switch back to **Finance**.
 
-> "Every step is recorded in the history, with who approved it and when. That's the audit trail email never gave us."
+> "Every step is in the history: who approved, and when."
 
 **Do:** Click **Send to SAP B1**.
 
-> "Once it's fully approved, the record goes to SAP B1 in the Service Layer format, with no manual retyping. In this prototype the call is simulated."
+> "Once approved, it goes to SAP B1 in the Service Layer format, with no retyping. Here the call is simulated."
 
 **Do:** Close the payload window.
 
@@ -69,7 +69,7 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 **Do:** Click **Merge into NUH Singapore**.
 
-> "The merge preview is read-only. It goes from 18 customer records to 17, and 25 orders move over without losing or double-counting any units. This is why the regional numbers can be trusted."
+> "The merge preview is read-only. It goes from 18 customer records to 17, and 25 orders move over without losing or double-counting any units."
 
 ---
 
@@ -77,7 +77,7 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 **Do:** Open **Regional view**.
 
-> "This is confirmed orders for Products A, B and C across five countries over 12 months. Enquiries and setup requests are counted separately and kept out of demand."
+> "Confirmed orders for Products A, B and C, five countries, 12 months. Enquiries and setup requests are kept out of demand."
 
 **Point at** the country × product table.
 
@@ -85,7 +85,7 @@ Numbers quoted below are from the current seed. If yours differ, read what is on
 
 **Point at** *Which forecast is more accurate?*
 
-> "Instead of assuming one forecast method, we test both on the last six months. Here the simple average was slightly more accurate than the trend, so it's used. The system picks whichever is more accurate as the data changes."
+> "Instead of assuming one forecast method, we test both on the last six months. Here the simple average was slightly more accurate than the trend, so it's used."
 
 **Point at** *What to do next.*
 
