@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Check, Lock, Mail, Search } from 'lucide-react';
-import { api, countries, defaultConfig, detailFields, errorText, roleLabel, type Config, type Match, type RequestType, type Role } from '../api';
+import { api, countries, defaultConfig, entities, detailFields, errorText, roleLabel, type Config, type Match, type RequestType, type Role } from '../api';
 import './RequestPage.css';
 
 const types: RequestType[] = ['Customer', 'Vendor', 'Item', 'Cost Center'];
@@ -10,7 +10,7 @@ Subject: New customer account - urgent
 
 Hi MDM team,
 
-Please set up a new customer account.
+Please set up a new customer account for SPD.
 Name: Saigon Heart Clinic
 Country: Vietnam
 Tax ID: VN-0312-8841
@@ -23,7 +23,7 @@ Thanks,
 Linh Nguyen`;
 
 type Values = Record<string, string>;
-const blank = (type: RequestType, name = ''): Values => ({type, name, country:'', identifier:'', email:'', requester:'', deadline:'', priority:'2'});
+const blank = (type: RequestType, name = ''): Values => ({type, name, entity:'', country:'', identifier:'', email:'', requester:'', deadline:'', priority:'2'});
 
 // Rule-based extraction from labelled lines; the requester still reviews every field.
 function parseEmail(text: string, allFields: Config['fields'] = detailFields): Values {
@@ -39,8 +39,9 @@ function parseEmail(text: string, allFields: Config['fields'] = detailFields): V
  out.email = pick('email', 'e-mail') || (/[\w.+-]+@[\w-]+\.[\w.]+/.exec(text.split('\n').filter(l => !/^from:/i.test(l)).join('\n'))?.[0] ?? '');
  out.country = countries.find(c => c.toLowerCase() === pick('country').toLowerCase()) ?? countries.find(c => text.includes(c)) ?? '';
  out.requester = pick('from').replace(/<.*>/, '').trim();
+ out.entity = entities.find(x => new RegExp(`\\b${x}\\b`).test(pick('entity', 'business entity') || text)) ?? '';
  if (/urgent|asap/i.test(subject + text)) out.priority = '3';
- for (const fields of Object.values(allFields)) for (const f of fields) { const v = pick(f.label.toLowerCase(), f.label.toLowerCase().replace(/ \(usd\)/, ''), f.key.toLowerCase()); if (v && !out[f.key]) out[f.key] = v.replace(/[$,]/g, f.number ? '' : '$&'); }
+ for (const fields of Object.values(allFields)) for (const f of fields) { const plain = f.label.toLowerCase().replace(/ \(usd\)/, ''); const v = pick(f.label.toLowerCase(), plain, plain.replace(/^requested /, ''), f.key.toLowerCase()); if (v && !out[f.key]) out[f.key] = v.replace(/[$,]/g, f.number ? '' : '$&'); }
  return Object.fromEntries(Object.entries(out).filter(([, v]) => v));
 }
 
@@ -70,7 +71,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
 
  const t = (values.type || type) as RequestType;
  const fields = config.fields[t];
- const required = ['name', 'country', 'requester', ...(t === 'Customer' || t === 'Vendor' ? ['identifier', 'email'] : []), ...fields.map(f => f.key)];
+ const required = ['name', 'entity', 'country', 'requester', ...(t === 'Customer' || t === 'Vendor' ? ['identifier', 'email'] : []), ...fields.map(f => f.key)];
  const missing = required.filter(k => !String(values[k] ?? '').trim());
  const set = (k: string, v: string) => setValues(s => ({...s, [k]: v}));
  const route = useMemo(() => config.routes[t], [config, t]);
@@ -86,7 +87,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
  async function submit() {
   setSaving(true); setError('');
   const details = Object.fromEntries(fields.map(f => [f.key, f.number ? Number(values[f.key]) : values[f.key]]));
-  const body = {type:t, name:values.name, country:values.country, identifier:values.identifier, email:values.email, requester:values.requester, priority:Number(values.priority), details, ...(values.deadline ? {deadline:values.deadline} : {}), ...(override ? {duplicateOverride:override} : {})};
+  const body = {type:t, name:values.name, entity:values.entity, country:values.country, identifier:values.identifier, email:values.email, requester:values.requester, priority:Number(values.priority), details, ...(values.deadline ? {deadline:values.deadline} : {}), ...(override ? {duplicateOverride:override} : {})};
   try { const created = await api<{id:string}>('/requests', {method:'POST', body:JSON.stringify(body)}); onCreated(created.id); }
   catch (e: any) { if (e.status === 409 && e.matches) setBlocked(e.matches); else setError(errorText(e)); }
   finally { setSaving(false); }
@@ -112,7 +113,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
     <div className={`alert ${strong.length ? 'red' : 'amber'}`}><AlertTriangle size={16}/>{strong.length ? 'This looks like it already exists.' : 'Similar records found. Check before creating.'}</div>
     {matches.slice(0, 3).map(m => <div key={m.customer.id} className="card match">
      <div><div className="match-name"><strong>{m.customer.name}</strong><span className={`pill ${m.score >= 80 ? 'red' : 'amber'}`}>{m.score}% match</span></div>
-      <span className="muted small">{m.customer.id} · {m.customer.country}{m.customer.identifier ? ` · ${m.customer.identifier}` : ''} · {m.evidence.join(', ')}</span></div>
+      <span className="muted small">{m.customer.id} · {m.customer.entity ? `${m.customer.entity} · ` : ''}{m.customer.country}{m.customer.identifier ? ` · ${m.customer.identifier}` : ''} · {m.evidence.join(', ')}</span></div>
      {!m.customer.id.startsWith('REQ') && <button className="btn" onClick={() => onOpenCustomer(m.customer.id)}>Use this record</button>}
     </div>)}
     <button className="btn secondary" onClick={() => startForm()}>It’s a different {type.toLowerCase()} – continue</button>
@@ -124,6 +125,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer}: {role:Rol
     <div className="card-head"><h2>New {t.toLowerCase()} request</h2>{missing.length ? <span className="pill amber">{missing.length} to fill</span> : <span className="pill green"><Check size={12}/>Complete</span>}</div>
     <div className="fields">
      <Field label="Name" k="name" values={values} set={set} missing={missing}/>
+     <label className="field">Business entity<select value={values.entity} onChange={e => set('entity', e.target.value)} className={missing.includes('entity') ? 'need' : ''}><option value="">Select…</option>{entities.map(x => <option key={x}>{x}</option>)}</select></label>
      <label className="field">Country<select value={values.country} onChange={e => set('country', e.target.value)} className={missing.includes('country') ? 'need' : ''}><option value="">Select…</option>{countries.map(c => <option key={c}>{c}</option>)}</select></label>
      <Field label={idLabel[t]} k="identifier" values={values} set={set} missing={missing}/>
      <Field label="Contact email" k="email" values={values} set={set} missing={missing} type="email"/>

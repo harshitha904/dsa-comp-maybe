@@ -54,7 +54,7 @@ export default function Track({role, selectedId, onSelect, toast}: {role:Role; s
     <div className="chips">{([['mine', 'Waiting on me'], ['open', 'Open'], ['done', 'Closed']] as const).map(([k, l]) => <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>{l} {lists[k].length}</button>)}</div>
     {shown.length ? shown.map(r => <button key={r.id} className={`req ${selected?.id === r.id ? 'sel' : ''}`} onClick={() => onSelect(r.id)}>
      <div className="req-top"><strong>{r.name}</strong>{escalated(r) ? <span className="pill amber"><Zap size={11}/>Escalated</span> : r.priority === 3 && <span className="pill red">Urgent</span>}</div>
-     <span className="muted small">{r.type} · {r.country}</span>
+     <span className="muted small">{r.type} · {r.country}{r.entity ? ` · ${r.entity}` : ''}</span>
      <div className="req-top">{statusPill(r)}<span className={`small ${overdue(r) ? 'down' : 'muted'}`}>{overdue(r) ? 'Overdue' : `Due ${dateLabel(r.deadline)}`}</span></div>
     </button>) : <p className="empty small">Nothing here.</p>}
    </div>
@@ -106,7 +106,7 @@ function Detail({r, config, audit, role, toast, onChanged}: {r:Request; config:C
 
  return <div className="card detail">
   <div className="detail-head">
-   <div><h2>{r.name}</h2><span className="muted small">{r.id.slice(0, 8)} · {r.type} · {r.country} · requested by {r.requester} on {dateLabel(r.createdAt)}</span></div>
+   <div><h2>{r.name}</h2><span className="muted small">{r.id.slice(0, 8)} · {r.type} · {r.country}{r.entity ? ` · ${r.entity}` : ''} · requested by {r.requester} on {dateLabel(r.createdAt)}</span></div>
    {statusPill(r)}
   </div>
 

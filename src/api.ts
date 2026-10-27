@@ -33,11 +33,12 @@ export const detailFields: Record<RequestType, Field[]> = {
  'Cost Center':[{key:'owner',label:'Owner'},{key:'unit',label:'Business unit'},{key:'budget',label:'Annual budget (USD)',number:true}]
 };
 export const countries = ['Singapore','Malaysia','Thailand','Indonesia','Vietnam'];
+export const entities = ['SPD','QTS','QTG'];
 export const countryCode: Record<string,string> = {Singapore:'SG',Malaysia:'MY',Thailand:'TH',Indonesia:'ID',Vietnam:'VN'};
 
-export type Request = {id:string;type:RequestType;name:string;country:string;identifier:string;email:string;details:Record<string,string|number|boolean>;requester:string;status:'Pending'|'Approved'|'Rejected'|'Clarification';stage:string;route?:Role[];escalatedStage?:string;escalatedTo?:string;approvals:string[];createdAt:string;deadline:string;priority:number;duplicateOverride?:string};
+export type Request = {id:string;entity?:string;type:RequestType;name:string;country:string;identifier:string;email:string;details:Record<string,string|number|boolean>;requester:string;status:'Pending'|'Approved'|'Rejected'|'Clarification';stage:string;route?:Role[];escalatedStage?:string;escalatedTo?:string;approvals:string[];createdAt:string;deadline:string;priority:number;duplicateOverride?:string};
 export type Audit = {id:string;requestId:string;action:string;actor:string;timestamp:string;details:string};
-export type Customer = {id:string;name:string;country:string;identifier:string;email:string;aliases:string[]};
+export type Customer = {id:string;entity?:string;name:string;country:string;identifier:string;email:string;aliases:string[]};
 export type Match = {customer:Customer;score:number;evidence:string[]};
 
 export type Config = {routes:Record<RequestType, Role[]>; fields:Record<RequestType, Field[]>; slaHours:number};

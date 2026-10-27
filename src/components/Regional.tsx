@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Minus } from 'lucide-react';
-import { api, countryCode, errorText, fmt, monthLabel } from '../api';
+import { api, countryCode, entities, errorText, fmt, monthLabel, type Customer } from '../api';
 import './Regional.css';
 
 type Forecast = {selectedForecast:number;selectedMae:number;selected:'baseline'|'candidate';baselineModel:string;candidateModel:string;backtest:{baselineMae:number;candidateMae:number;baselineMaePct:number;candidateMaePct:number;origins:number}};
@@ -26,7 +26,22 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
  const [product, setProduct] = useState('all');
  const [country, setCountry] = useState('');
  const [showAll, setShowAll] = useState(false);
- useEffect(() => { api<Analytics>('/analytics').then(setData).catch(e => setError(errorText(e))); }, []);
+ const [base, setBase] = useState<{customers:Customer[]; orders:{customerId:string;productId:string;country:string;quantity:number;signal:string}[]}>();
+ useEffect(() => { api<Analytics>('/analytics').then(setData).catch(e => setError(errorText(e))); api('/bootstrap').then(setBase).catch(() => {}); }, []);
+ // Entity × country from confirmed orders, plus customers that exist under more than one entity.
+ const byEntity = useMemo(() => {
+  if (!base) return undefined;
+  const entityOf = new Map(base.customers.map(c => [c.id, c.entity ?? '–']));
+  const cells = new Map<string, number>();
+  base.orders.filter(o => o.signal === 'confirmed' && (product === 'all' || o.productId === product)).forEach(o => {
+   const k = `${entityOf.get(o.customerId)}|${o.country}`; cells.set(k, (cells.get(k) ?? 0) + o.quantity);
+  });
+  const units = (id: string) => base.orders.filter(o => o.signal === 'confirmed' && o.customerId === id && (product === 'all' || o.productId === product)).reduce((n, o) => n + o.quantity, 0);
+  const groups = new Map<string, Customer[]>();
+  base.customers.forEach(c => { if (c.identifier) groups.set(c.identifier, [...(groups.get(c.identifier) ?? []), c]); });
+  const split = [...groups.values()].filter(g => new Set(g.map(c => c.entity)).size > 1).map(g => g.map(c => ({c, units:units(c.id)})));
+  return {cells, split};
+ }, [base, product]);
 
  const view = data?.views[product];
  const selected = view?.countries.find(c => c.country === country);
@@ -81,6 +96,17 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
    </table>
    <p className="muted small foot">Growth = confirmed units in the last 3 months vs the 3 months before.</p>
   </div>
+
+  {byEntity && <div className="card table-card">
+   <div className="card-head"><h2>By business entity</h2><span className="muted small">Confirmed units · entity that owns the customer record</span></div>
+   <table className="matrix entity">
+    <thead><tr><th>Entity</th>{view.countries.map(c => <th key={c.country}>{c.country}</th>)}<th>Total</th></tr></thead>
+    <tbody>{entities.map(e => { const row = view.countries.map(c => byEntity.cells.get(`${e}|${c.country}`) ?? 0); return <tr key={e}>
+     <td><strong>{e}</strong></td>{row.map((v, i) => <td key={i} className="num">{v ? fmt(v) : <span className="flat">–</span>}</td>)}<td className="total num">{fmt(row.reduce((a, b) => a + b, 0))}</td>
+    </tr>; })}</tbody>
+   </table>
+   {byEntity.split.map(g => <div key={g[0].c.id} className="alert amber split"><strong>Same customer, two entities:</strong> {g.map(x => `${x.c.name} (${x.c.entity}, ${fmt(x.units)} units)`).join(' and ')}. Its demand looks split in two until the records are linked. <button className="btn ghost" onClick={() => onOpenCustomer(g[0].c.id)}>Review in Graph</button></div>)}
+  </div>}
 
   <div className="grid chart-row">
    <div className="card">

@@ -28,3 +28,5 @@
 .links{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .more{margin-top:12px}
 @media (max-width:860px){.chart-row{grid-template-columns:1fr}.table-card{overflow-x:auto}}
+.matrix.entity tbody tr{cursor:default}.matrix.entity tbody tr:hover td:first-child{color:inherit}
+.split{margin-top:12px;align-items:center;flex-wrap:wrap}.split .btn{margin-left:auto}

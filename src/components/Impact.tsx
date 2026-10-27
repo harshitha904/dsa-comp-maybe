@@ -63,7 +63,7 @@ export default function Impact() {
   </div>
 
   <div className="grid g4">
-   <div className="stat"><div className="label">Duplicate customers found</div><div className="value">{dupIds.size}</div><div className="sub">records for the same hospital</div></div>
+   <div className="stat"><div className="label">Duplicate customers found</div><div className="value">{dupIds.size}</div><div className="sub">same hospital, under SPD and QTS</div></div>
    <div className="stat"><div className="label">Units split across them</div><div className="value">{fmt(splitUnits)}</div><div className="sub">now counted as one customer</div></div>
    <div className="stat"><div className="label">Kept out of the forecast</div><div className="value">{keptOut}</div><div className="sub">enquiries and setup requests</div></div>
    <div className="stat"><div className="label">Auto-escalations sent</div><div className="value">{escalations}</div><div className="sub">instead of manual chasing</div></div>

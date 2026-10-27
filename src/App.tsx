@@ -65,7 +65,15 @@ export default function App() {
      <li>Seasonal forecasting (needs more than 12 months of data)</li>
      <li>Automatic merging of duplicates (preview only)</li>
     </ul>
-    <p className="muted small">All data is synthetic.</p>
+    <h3>Data &amp; assumptions</h3>
+    <ul className="plain small">
+     <li><strong>All data is synthetic.</strong> No dataset was provided, so the app generates one: 18 customer records across 3 entities (SPD, QTS, QTG), 3 products, 5 countries, 415 orders, Oct 2025 – Sep 2026.</li>
+     <li><strong>Planted on purpose</strong> to reflect the brief: National University Hospital exists under SPD and again as NUH Singapore under QTS; Johor Distribution stops ordering after June; Vietnam grows each month; Siam Hospital Group dominates Thailand; some customers buy only Product A.</li>
+     <li><strong>Demand</strong> = confirmed purchase orders, in units. Enquiries and MDM setup requests are tracked but excluded.</li>
+     <li><strong>Growth</strong> = confirmed units in the last 3 months vs the 3 months before.</li>
+     <li><strong>Forecast</strong>: the 6–12 month average and a trend model are both tested on the last 6 months; the one with the lower error is used.</li>
+     <li><strong>Impact</strong>: 18 days is from the brief. MasterGraph timing assumes each approver acts within a day; savings use the slider assumptions on the Impact page.</li>
+    </ul>
     <button className="btn secondary" onClick={reset}>Reset demo data</button>
    </div>
   </div>}

@@ -61,3 +61,11 @@ test('config API is MDM-team only and escalations persist', async t => {
   assert.equal((await call('/api/escalations/run', 'POST'))[1].escalated.length, 0);
   store.close();
 });
+
+test('customers and requests carry a business entity; the NUH duplicate spans two entities', () => {
+  const data = seedData();
+  assert.ok(data.customers.every(c => ['SPD','QTS','QTG'].includes(c.entity)));
+  assert.deepEqual([data.customers[0].entity, data.customers[1].entity], ['SPD','QTS']);
+  assert.equal(createRequest({...customer, entity:'QTG'}, data.customers, data.requests).entity, 'QTG');
+  assert.throws(() => createRequest({...customer, entity:'XYZ'}, data.customers, data.requests), /Invalid business entity/);
+});
