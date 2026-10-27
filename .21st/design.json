@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "project": {
+    "name": "MasterGraph",
+    "productType": "Enterprise MDM and regional intelligence",
+    "stack": [
+      "React",
+      "TypeScript",
+      "Vite",
+      "Express",
+      "SQLite"
+    ]
+  },
+  "sources": {
+    "tokens": [],
+    "components": [],
+    "assets": [],
+    "instructions": []
+  },
+  "design": {
+    "colorMode": "light",
+    "colors": {
+      "ink": "#20393f",
+      "muted": "#76868a",
+      "teal": "#087f75",
+      "border": "#e1e8e6",
+      "canvas": "#f4f7f6",
+      "sidebar": "#142f34"
+    },
+    "typography": {
+      "body": "DM Sans",
+      "headings": "Manrope"
+    },
+    "spacing": {},
+    "radius": {},
+    "shadows": {},
+    "motion": {},
+    "density": "comfortable"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [],
+    "avoid": []
+  },
+  "decisions": [],
+  "evidence": [],
+  "generatedAt": "2026-10-27T16:07:53.225Z"
+}
