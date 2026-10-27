@@ -1,6 +1,6 @@
-# MasterGraph: 2–3 Minute Narrated Demo Script
+# MasterGraph: 2–3 Minute Demo Script
 
-Narration is written to be read aloud. Timings are targets. Keep the whole demo under three minutes. Use only synthetic data.
+Narration is written to be read aloud. Timings are targets; the whole run is about 2:45. All data is synthetic.
 
 ## Before you record
 
@@ -9,115 +9,112 @@ npm install
 npm run dev
 ```
 
-1. Open http://127.0.0.1:5173.
-2. Click **Reset demo data** in the sidebar, so the fixture and requests start from the seed.
-3. Keep Finance and Admin ready for approvals. The role switch ("Acting as") is at the top of the MDM workspace.
+1. Open http://127.0.0.1:5173. It opens on **Request**.
+2. Click the **ⓘ** button (top right), then **Reset demo data**.
+3. Set **Acting as** (top right) to **Sales**.
 
-**Fallback if the browser is unavailable:** run the same story with the API (see the end of this script). It needs `jq`.
-
----
-
-## Scene 1: Control center (0:00–0:20)
-
-**Show:** Control center tiles and the regional country strip.
-
-> "This is MasterGraph, a prototype for keeping customer and vendor master data clean. The tiles summarise confirmed purchase volume, connected customer records, requests waiting for action, and enquiry or setup signals that we keep out of the forecast. Everything here is synthetic, so no real customer is involved."
+Numbers quoted below are from the current seed. If yours differ, read what is on screen.
 
 ---
 
-## Scene 2: Graph explorer and duplicate evidence (0:20–0:55)
+## Scene 1: Request – stop duplicates at the start (0:00–0:45)
 
-**Do:** Open **Graph explorer**. Select **National University Hospital** (c1) from the record picker.
+**Show:** the Request screen, "What do you need set up?"
 
-> "The graph shows customers, products and countries from confirmed orders. The record inspector shows the customer's identifier, email and aliases. These identifiers are synthetic and visible to every role."
+> "Today a new customer starts as a free-text email, and nobody checks whether the customer already exists. In MasterGraph, the requester searches first."
 
-**Point at** the duplicate evidence panel.
+**Do:** Type **National University Hosp** in the search box.
 
-> "The panel shows **NUH Singapore** with a score of 100, because the identifier and email match exactly. The score is rule-based evidence, not a probability. A person still decides what to do with it."
+> "Before anything is created, it finds National University Hospital and NUH Singapore, the same hospital under two names. The requester picks the existing record instead of creating a third one."
 
-**Do:** Click **Use as simulation target** on NUH Singapore, then **Simulate consolidation**.
+**Do:** Click **Or paste a request email**, then **Use sample**, then **Fill the form**.
 
-> "This is a preview only. It moves source orders to the target in memory. Combined units stay the same, and nothing is written. The simulation says so explicitly."
+> "If the request is still an email, they paste it. The fields are pulled out automatically, and the requester checks them. One form, with every required field, so nothing bounces back."
 
----
+**Point at** the **Approval route** panel and a **Finance only** field.
 
-## Scene 3: Prevent a duplicate, then approve (0:55–1:50)
+> "They can see who approves it before they submit: Sales, Finance, BU Head, a final MDM check, then SAP B1. Payment terms and credit limit are Finance-only."
 
-**Do:** Open **MDM workspace**. Start a new **Customer** request with:
-
-- Name: NUH Singapore
-- Country: Singapore
-- Identifier: SG-NUH-001
-- Email: procurement@nuh.example
-- Requester: Demo Sales
-- Customer segment: Direct account
-- Payment terms: Net 30
-- Requested credit limit (USD): 25000
-
-**Show:** the duplicate warning before submission.
-
-> "Before the request is saved, the system checks it against existing customers and against requests that have not been rejected. It finds an exact match on identifier and email, so it asks for a written reason. This is prevention at intake, not clean-up after the fact."
-
-**Do:** Enter an override of at least ten characters, for example "Separate legal entity, confirmed with procurement." Submit.
-
-> "The override is recorded on the request, with the actor and time in the audit trail."
-
-**Do:** Approve the request as the stage role, then as Finance, then as BU Head. Use **Admin** for a quick pass if you need to.
-
-> "Approvals are enforced by the server. Each stage has a required role. When I switch to a different role and try to approve out of turn, the server refuses it."
-
-**Do:** Switch to **Quality** and try to approve a Sales-stage request. Show the refusal message.
-
-**Do:** Once the request is approved, switch to **Finance** and download the SAP payload.
-
-> "This is a Business One Service Layer shape, marked simulated. It contains the business partner fields we would map. Nothing is sent to SAP. Only Finance and Admin can produce it."
-
-**Point at** the restricted fields.
-
-> "Payment terms and credit limits are hidden from roles outside Finance. Switch to Sales and they show as redacted. Clarification and rejection notes stay visible to every role on purpose."
+**Do:** Click **Submit request**. It opens Track.
 
 ---
 
-## Scene 4: Regional intelligence (1:50–2:30)
+## Scene 2: Track – everyone sees where it is (0:45–1:30)
 
-**Do:** Open **Regional intelligence**. Show the demand trend, then the country heatmap. Select one country, for example **Vietnam**, then return to all markets.
+**Show:** the progress bar on Saigon Heart Clinic.
 
-> "This page uses confirmed orders only. Enquiries and setup signals are shown as pipeline and are never counted as demand."
+> "This answers Amy's question from the brief: where is my request? It's with Sales, it's been waiting since today, and it's due on the needed-by date. If an approver is slow, anyone can nudge them in Teams."
 
-**Do:** Open the forecast check for the all-market view, then open the detail for a second country and read its next-month forecast.
+**Do:** Click **Approve as Sales**. Switch **Acting as** to **Finance**.
 
-> "We compare two models on held-out months. The baseline is a historical average. The candidate is a linear trend. The system chooses a model only when it beats the baseline by more than a fixed margin."
+> "Now it's Finance's turn, and it shows up in their *Waiting on me* list. Finance can see the credit terms, which Sales cannot."
 
-> "The result differs by series. On the current synthetic data, the baseline wins for the all-market view and Singapore. The linear trend wins for Vietnam and Malaysia. We show each winner and its error. A candidate that loses is reported as a loss."
+**Do:** Approve as **Finance**. Switch to **BU Head** and approve. Switch back to **Finance**.
 
-**Do:** Scroll to **Risks and opportunities**. Read one risk and one opportunity.
+> "Every step is recorded in the history, with who approved it and when. That's the audit trail email never gave us."
 
-> "Risks include declining demand and customer concentration. Opportunities include accelerating demand and cross-sell from co-purchase patterns. They are generated from the same numbers as the charts."
+**Do:** Click **Send to SAP B1**.
+
+> "Once it's fully approved, the record goes to SAP B1 in the Service Layer format, with no manual retyping. In this prototype the call is simulated."
+
+**Do:** Close the payload window.
 
 ---
 
-## Scene 5: Close (2:30–2:50)
+## Scene 3: Graph – fix the duplicates you already have (1:30–1:55)
 
-> "What you saw is a working prototype with server-side rules, an audit trail and a simulated SAP handoff. What it does not have yet is authentication, a live SAP connection, hosting or measured results. The proposed next step is a six-week pilot in one country and one entity, with success measured by the KPIs in the production plan. Nothing in this demo is a measured outcome."
+**Do:** Open **Graph**. National University Hospital is selected.
+
+> "Duplicates that already exist show up as orange dashed lines. NUH Singapore matches National University Hospital on tax ID, email and name."
+
+**Do:** Click **Merge into NUH Singapore**.
+
+> "The merge preview is read-only. It goes from 18 customer records to 17, and 25 orders move over without losing or double-counting any units. This is why the regional numbers can be trusted."
+
+---
+
+## Scene 4: Regional view – demand, forecast, actions (1:55–2:35)
+
+**Do:** Open **Regional view**.
+
+> "This is confirmed orders for Products A, B and C across five countries over 12 months. Enquiries and setup requests are counted separately and kept out of demand."
+
+**Point at** the country × product table.
+
+> "Growth is the last three months against the three before. Malaysia stands out: Products A and B are down by more than half."
+
+**Point at** *Which forecast is more accurate?*
+
+> "Instead of assuming one forecast method, we test both on the last six months. Here the simple average was slightly more accurate than the trend, so it's used. The system picks whichever is more accurate as the data changes."
+
+**Point at** *What to do next.*
+
+> "Each signal comes with an action: call the Malaysian customer who stopped ordering, cut the dependence on one big buyer in Thailand, and offer Product B to customers who only buy Product A."
+
+---
+
+## Scene 5: Close (2:35–2:45)
+
+> "One flow, from request to approval to SAP to regional insight, built on clean master data. It's a prototype: sign-in, live SAP and seasonal forecasting come next, in a one-country pilot."
 
 ---
 
 ## Likely questions
 
-**Is the role switch authentication?**
-No. It is a demo header that shows the server enforcing workflow rules. Any client can send any role. Production needs single sign-on and server-verified identity.
+**Is the role switch real sign-in?**
+No. It shows the server enforcing each approval stage. Production would use Microsoft 365 single sign-on.
 
 **How is the duplicate score calculated?**
-Rules, not a trained model. An exact identifier scores 100, an exact email 95, an exact name or alias 90, and a similar name up to 85. Matches at 80 or above need an override. Scores are not probabilities, and the pilot would measure how often flagged matches are confirmed.
+Rules, not a trained model. An exact identifier scores 100, an exact email 95, an exact name or alias 90, and a similar name up to 85. At 80 or above, the requester must write a reason to continue.
 
-**Does MasterGraph talk to SAP?**
-No. The export is a payload shape, marked simulated. Live integration needs sandbox access, credentials, idempotency and reconciliation.
+**Does it talk to SAP?**
+Not yet. The payload is in the SAP B1 Service Layer format but marked simulated. A live link needs a sandbox and credentials.
 
-**Why do the forecast models disagree?**
-They fit different series. The report chooses per series and shows the error. The synthetic history is short, so the backtest shows the method, not real accuracy.
+**Why does the simple average win?**
+The synthetic history is only 12 months and fairly flat. The point is the method: both models are scored on held-out months, and the more accurate one is used for each series.
 
 **What would the pilot prove?**
-Whether duplicate prevention is precise enough to trust, whether approval cycle time falls, and whether the forecast beats the baseline on the pilot's own data. The pilot would measure each, and the production plan defines them. None has been measured yet.
+Fewer duplicate records, a shorter approval cycle, and whether the chosen forecast beats the current average on real data. None of these has been measured yet.
 
 ---
 
