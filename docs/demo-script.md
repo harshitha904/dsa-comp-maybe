@@ -1,6 +1,6 @@
 # MasterGraph: 2–3 Minute Demo Script
 
-Narration is written to be read aloud. Timings are targets; the whole run is about 2:45. All data is synthetic.
+Narration is written to be read aloud. Timings are targets; the whole run is about 3:00. All data is synthetic.
 
 ## Before you record
 
@@ -10,96 +10,100 @@ npm run dev
 ```
 
 1. Open http://127.0.0.1:5173. It opens on **Request**.
-2. Click the **ⓘ** button (top right), then **Reset demo data**.
+2. Click **ⓘ** (top right), then **Reset demo data**. This also restores the default rules.
 3. Set **Acting as** (top right) to **Sales**.
 
 Numbers quoted below are from the current seed. If yours differ, read what is on screen.
 
 ---
 
-## Scene 1: Request – stop duplicates at the start (0:00–0:45)
-
-**Show:** the Request screen, "What do you need set up?"
-
-> "Today a new customer starts as a free-text email, and nobody checks whether the customer already exists. In MasterGraph, the requester searches first."
+## Scene 1: Request – stop duplicates at the start (0:00–0:35)
 
 **Do:** Type **National University Hosp** in the search box.
 
-> "Before anything is created, it finds National University Hospital and NUH Singapore, the same hospital under two names. The requester picks the existing record instead of creating a third one."
+> "Today a new customer starts as a free-text email. Here, the requester searches first, and finds this hospital already exists twice, under two names."
 
-**Do:** Click **Or paste a request email**, then **Use sample**, then **Fill the form**.
+**Do:** Click **Or paste a request email**, **Use sample**, **Fill the form**.
 
-> "If the request is still an email, they paste it. The fields are pulled out automatically, and the requester checks them."
-
-**Point at** the **Approval route** panel and a **Finance only** field.
-
-> "They can see who approves it before they submit: Sales, Finance, BU Head, a final MDM check, then SAP B1. Payment terms and credit limit are Finance-only."
+> "If it's still an email, paste it and the fields fill in. They can see who approves it, and credit terms are Finance-only."
 
 **Do:** Click **Submit request**. It opens Track.
 
 ---
 
-## Scene 2: Track – everyone sees where it is (0:45–1:30)
+## Scene 2: Track – status, Teams and escalation (0:35–1:15)
 
-**Show:** the progress bar on Saigon Heart Clinic.
+**Point at** the yellow banner and the **Escalated** count.
 
-> "This answers Amy's question from the brief: where is my request? It's with Sales, it's been waiting since today, and it's due on the needed-by date. Slow approver? Nudge them in Teams."
+> "Three older requests got no reply in 48 hours, so the system already reminded the approver in Teams and escalated them. Nobody had to chase."
 
-**Do:** Click **Approve as Sales**. Switch **Acting as** to **Finance**.
+**Point at** the progress bar on Saigon Heart Clinic.
 
-> "Now it's in Finance's *Waiting on me* list, and only Finance sees the credit terms."
+> "Amy's question, 'where is my request?', is answered here: who has it, for how long, and when it's due."
 
-**Do:** Approve as **Finance**. Switch to **BU Head** and approve. Switch back to **Finance**.
+**Do:** Click **Approve as Sales**. Click **Teams card**, then **Approve** in the card.
 
-> "Every step is in the history: who approved, and when."
+> "Approvers don't need to open another tool. Finance gets this card in Teams and approves from there."
 
-**Do:** Click **Send to SAP B1**.
+**Do:** Click **Teams card** again and **Approve** as BU Head. Switch **Acting as** to **Finance**, click **Send to SAP B1**, then close the window.
 
-> "Once approved, it goes to SAP B1 in the Service Layer format, with no retyping. Here the call is simulated."
-
-**Do:** Close the payload window.
+> "Every step is in the history. Once approved, it goes to SAP B1 with no retyping. Here the call is simulated."
 
 ---
 
-## Scene 3: Graph – fix the duplicates you already have (1:30–1:55)
+## Scene 3: Rules – change the process without IT (1:15–1:35)
 
-**Do:** Open **Graph**. National University Hospital is selected.
+**Do:** Open **Rules**. Switch **Acting as** to **MDM team**. Click **Example: add a new business unit**, then **Save rules**.
 
-> "Duplicates that already exist show up as orange dashed lines. NUH Singapore matches National University Hospital on tax ID, email and name."
-
-**Do:** Click **Merge into NUH Singapore**.
-
-> "The merge preview is read-only. It goes from 18 customer records to 17, and 25 orders move over without losing or double-counting any units."
+> "Marcus's new unit sells to licensed labs. The MDM team adds a licence field and a Quality check themselves, with no IT ticket. New requests pick it up immediately, and requests already in flight keep their route."
 
 ---
 
-## Scene 4: Regional view – demand, forecast, actions (1:55–2:35)
+## Scene 4: Graph – fix existing duplicates (1:35–1:50)
+
+**Do:** Open **Graph**. Click **Merge into NUH Singapore**.
+
+> "Existing duplicates show as orange lines. A read-only merge preview: 18 records become 17 and no units are lost or counted twice."
+
+---
+
+## Scene 5: Regional view – demand, forecast, actions (1:50–2:30)
 
 **Do:** Open **Regional view**.
 
-> "Confirmed orders for Products A, B and C, five countries, 12 months. Enquiries and setup requests are kept out of demand."
-
-**Point at** the country × product table.
-
-> "Growth is the last three months against the three before. Malaysia stands out: Products A and B are down by more than half."
+> "Confirmed orders for Products A, B and C, five countries, 12 months. Enquiries and setup requests are kept out of demand. Growth is the last three months against the three before, and Malaysia is down by more than half."
 
 **Point at** *Which forecast is more accurate?*
 
-> "Instead of assuming one forecast method, we test both on the last six months. Here the simple average was slightly more accurate than the trend, so it's used."
+> "We test today's average method against a trend model on the last six months and use whichever is more accurate."
 
 **Point at** *What to do next.*
 
-> "Each signal comes with an action: call the Malaysian customer who stopped ordering, cut the dependence on one big buyer in Thailand, and offer Product B to customers who only buy Product A."
+> "Each signal has an action: call the Malaysian customer who stopped ordering, reduce reliance on one buyer in Thailand, and cross-sell Product B."
 
 ---
 
-## Scene 5: Close (2:35–2:45)
+## Scene 6: Impact (2:30–2:50)
 
-> "One flow, from request to approval to SAP to regional insight, built on clean master data. It's a prototype: sign-in, live SAP and seasonal forecasting come next, in a one-country pilot."
+**Do:** Open **Impact**.
+
+> "Amy's request took 18 days by email. With MasterGraph it's about three and a half, and never more than six and a half with escalation. On our assumptions that's around 64 staff hours a month, and the sliders let Lives Group plug in their own numbers."
+
+---
+
+## Close (2:50–3:00)
+
+> "Clean master data at the start, approvals in Teams, and regional insight on top. Next step: a one-country pilot."
 
 ---
 
 ## Likely questions
+
+**How does escalation work in production?**
+A scheduled flow (for example Power Automate, hourly) runs the same check. Here it runs when Track opens.
+
+**Are the Impact numbers measured?**
+No. The 18 days comes from the brief; MasterGraph timing assumes each approver acts within a day. Savings use the assumptions on the sliders. The pilot would measure them.
 
 **Is the role switch real sign-in?**
 No. It shows the server enforcing each approval stage. Production would use Microsoft 365 single sign-on.
