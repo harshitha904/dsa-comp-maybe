@@ -1,48 +1,122 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, Bell, Check, ChevronRight, ClipboardList, Clock3, FilePlus2, Layers3, Mail, MessageSquare, Network, RotateCcw, Search, Settings2, SlidersHorizontal, X, BarChart3 } from 'lucide-react';
-import { ticketApi, usd } from './tickets/api';
-import type { User, Notification, Task, Digest } from './tickets/types';
-const TicketPage=lazy(()=>import('./tickets/TicketPage'));
-const NeedsYou=lazy(()=>import('./tickets/NeedsYou'));
-const NewRequest=lazy(()=>import('./tickets/NewRequest'));
-const TicketsList=lazy(()=>import('./tickets/TicketsList'));
-const Rules=lazy(()=>import('./tickets/Rules'));
-const Insights=lazy(()=>import('./tickets/Insights'));
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { CircleHelp, Moon, Network, Sun, X } from 'lucide-react';
+import { api, errorText, roleLabel, roles, setApiRole, type Request, type Role } from './api';
+const RequestPage = lazy(() => import('./components/RequestPage'));
+const Track = lazy(() => import('./components/Track'));
+const Regional = lazy(() => import('./components/Regional'));
+const Graph = lazy(() => import('./components/Graph'));
+const Rules = lazy(() => import('./components/Rules'));
+const Impact = lazy(() => import('./components/Impact'));
 
-type Page='ticket'|'tickets'|'needs'|'new'|'insights'|'rules'|'graph';
-const navigation=[{id:'tickets',label:'Tickets',icon:ClipboardList},{id:'needs',label:'Needs you',icon:Layers3},{id:'new',label:'New request',icon:FilePlus2},{id:'insights',label:'Insights',icon:BarChart3},{id:'rules',label:'Approval rules',icon:SlidersHorizontal},{id:'graph',label:'Relationship graph',icon:Network}] as const;
-function initialRoute(){const [page,id]=location.hash.slice(1).split('/');return {page:((['ticket','tickets','needs','new','insights','rules','graph'].includes(page)?page:'ticket') as Page),id:decodeURIComponent(id||'T-1042')}}
-export default function App(){
- const [route,setRoute]=useState(initialRoute);const [resetEpoch,setResetEpoch]=useState(0);const [users,setUsers]=useState<User[]>([]);const [userId,setUserId]=useState('management');const [version,setVersion]=useState(0);
- const [notifications,setNotifications]=useState<Notification[]>([]);const [tasks,setTasks]=useState<Task[]>([]);const [digest,setDigest]=useState<Digest|null>(null);
- const [bellOpen,setBellOpen]=useState(false);const [deliveryOpen,setDeliveryOpen]=useState(false);const [settingsOpen,setSettingsOpen]=useState(false);const [resetOpen,setResetOpen]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [toast,setToast]=useState<{text:string;ticket?:string}|null>(null);const [query,setQuery]=useState('');
- const seen=useRef<Record<string,Set<string>>>({});const user=users.find(u=>u.id===userId);
- const go=useCallback((page:Page,id='T-1042')=>{setRoute({page,id});location.hash=page==='ticket'?`ticket/${encodeURIComponent(id)}`:page;setBellOpen(false);window.scrollTo({top:0,behavior:'smooth'})},[]);
- const changed=useCallback(()=>setVersion(v=>v+1),[]);
- useEffect(()=>{const fn=()=>setRoute(initialRoute());window.addEventListener('hashchange',fn);return()=>window.removeEventListener('hashchange',fn)},[]);
- useEffect(()=>{let active=true;ticketApi<User[]>('/users',userId).then(data=>{if(active){setUsers(data);setError('')}}).catch(e=>active&&setError(e.message));return()=>{active=false}},[version]);
- useEffect(()=>{let active=true;const refresh=async()=>{try{const [n,t,d]=await Promise.all([ticketApi<Notification[]>(`/users/${userId}/notifications`,userId),ticketApi<Task[]>(`/users/${userId}/tasks`,userId),ticketApi<Digest>(`/users/${userId}/digest`,userId)]);if(!active)return;setNotifications(n.filter(x=>['in-app','in_app'].includes(x.channel)));setTasks(t);setDigest(d);const fresh=n.filter(x=>['in-app','in_app'].includes(x.channel)&&!x.acted&&!x.read);const old=seen.current[userId];const incoming=fresh.find(x=>!old?.has(x.id));if(incoming && (old || userId==='priya'))setToast({text:incoming.text,ticket:incoming.ticket_id});seen.current[userId]=new Set(n.map(x=>x.id));}catch(e){if(active)setError((e as Error).message)}};void refresh();const interval=setInterval(refresh,15000);window.addEventListener('focus',refresh);return()=>{active=false;clearInterval(interval);window.removeEventListener('focus',refresh)}},[userId,version]);
- useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),9000);return()=>clearTimeout(timer)},[toast]);
- useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setBellOpen(false);setDeliveryOpen(false);setSettingsOpen(false);setResetOpen(false)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
- useEffect(()=>{if(!settingsOpen&&!deliveryOpen&&!resetOpen)return;const previous=document.activeElement as HTMLElement;const dialog=document.querySelector<HTMLElement>('[role=dialog]');const targets=()=>Array.from(dialog?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')||[]);targets()[0]?.focus();const trap=(event:KeyboardEvent)=>{if(event.key!=='Tab')return;const all=targets();if(!all.length)return;const first=all[0],last=all[all.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}};document.addEventListener('keydown',trap);return()=>{document.removeEventListener('keydown',trap);previous?.focus()}},[settingsOpen,deliveryOpen,resetOpen]);
- const openNotification=async(n:Notification)=>{try{await ticketApi(`/notifications/${n.id}/read`,userId,{method:'POST'});changed();go('ticket',n.ticket_id)}catch(e){setError((e as Error).message)}};
- const reset=async()=>{setBusy(true);try{await ticketApi('/demo/reset',userId,{method:'POST'});seen.current={};setToast(null);setResetEpoch(v=>v+1);changed();setResetOpen(false);go('ticket','T-1042')}catch(e){setError((e as Error).message)}finally{setBusy(false)}};
- const unread=notifications.filter(n=>!n.read&&!n.acted);const needs=tasks.length;const task=tasks.find(t=>t.ticket_code==='T-1042')||tasks[0];
- const props=user?{user,onNavigate:(id:string)=>go('ticket',id),onChange:changed}:null;
- return <div className="lives-app"><div className="ambient ambient-one"/><div className="ambient ambient-two"/><div className="ambient ambient-three"/>
-  <aside className="lives-sidebar glass"><a className="lives-brand" href="#ticket/T-1042" onClick={()=>go('ticket')}><span className="brand-glyph"><Layers3 size={24}/></span><span>Lives Group<small>Order tickets</small></span></a><div className="nav-caption">YOUR WORKSPACE</div><nav aria-label="Main navigation">{navigation.filter(n=>n.id!=='rules'||['MDM','Management'].includes(user?.role||'')).map(n=><button key={n.id} aria-label={n.label} className={`lives-nav ${route.page===n.id||(n.id==='tickets'&&route.page==='ticket')?'selected':''}`} onClick={()=>go(n.id)}><n.icon size={19}/><span>{n.label}</span>{n.id==='needs'&&needs>0&&<b className="count-badge">{needs}</b>}</button>)}</nav><div className="sidebar-note"><span className="small-orbit"><Check size={15}/></span><strong>Create now.<br/>Unlock as you go.</strong><p>Every team adds its part.<br/>Every action has a clear owner.</p></div><button className="lives-nav bottom-setting" onClick={()=>setSettingsOpen(true)}><Settings2 size={18}/>Notification settings</button><a className="legacy-link" href="/legacy.html">Earlier workspace & email triage <ArrowRight size={13}/></a><div className="prototype-label">Prototype · synthetic data</div></aside>
-  <div className="lives-main"><header className="lives-topbar"><div className="breadcrumb">Workspace <ChevronRight size={14}/><span>{route.page==='ticket'?'Order ticket':navigation.find(n=>n.id===route.page)?.label}</span></div><form className="ticket-search" onSubmit={e=>{e.preventDefault();if(query.trim())go('ticket',query.trim().toUpperCase())}}><Search size={16}/><input aria-label="Find ticket by code" placeholder="Find a ticket, e.g. T-1042" value={query} onChange={e=>setQuery(e.target.value)}/></form><div className="notification-wrap"><button className="icon-button glass" aria-label={`Notifications, ${unread.length} unread`} aria-expanded={bellOpen} onClick={()=>setBellOpen(v=>!v)}><Bell size={20}/>{unread.length>0&&<span className="bell-count">{unread.length}</span>}</button>{bellOpen&&<div className="notification-popover glass"><div className="popover-heading"><h2>Your notifications</h2><button className="icon-button" aria-label="Close notifications" onClick={()=>setBellOpen(false)}><X size={18}/></button></div>{[['Needs you now',unread.filter(n=>n.priority==='urgent')],['Today',unread.filter(n=>n.priority!=='urgent')],['Updates',notifications.filter(n=>n.read&&!n.acted)]] .map(([label,items])=><div key={label as string}><h3>{label as string}</h3>{(items as Notification[]).slice(0,8).map(n=><button className="notification-row" key={n.id} onClick={()=>void openNotification(n)}><span className={`notification-dot ${n.priority==='urgent'?'urgent':''}`}/><span><strong>{n.text}</strong><small>{new Date(n.created_at).toLocaleString()} · Open ticket</small></span><ChevronRight size={15}/></button>)}</div>)}{!notifications.some(n=>!n.acted)&&<p className="muted">You’re all caught up.</p>}<button className="text-button" onClick={()=>{setBellOpen(false);setDeliveryOpen(true)}}>Preview Teams & Outlook <ArrowRight size={15}/></button></div>}</div><label className="persona-control"><span>Viewing as</span><select aria-label="Viewing as" value={userId} onChange={e=>{setUserId(e.target.value);setBellOpen(false);setToast(null);setError('')}}>{users.map(u=><option key={u.id} value={u.id}>{u.name} · {u.role}</option>)}</select></label></header>
-  <main className="lives-content"><div className="prototype-notice"><span>LIVE WORKFLOW DEMO</span> Role switching is for demonstration, not sign-in.<button onClick={()=>setDeliveryOpen(true)}><MessageSquare size={14}/> Delivered to your team</button></div>{error&&<div role="alert" className="error-banner">{error}<button onClick={()=>{setError('');changed()}}>Retry</button></div>}
-   <div className="page-intro"><div><div className="eyebrow">LIVES GROUP · ORDER TICKETS</div><h1>{route.page==='ticket'?<>Every order gets a ticket.<br/>Each team unlocks its part.</>:route.page==='needs'?'A little from you. A lot moves forward.':route.page==='new'?'Start with just the basics.':route.page==='insights'?'Clean records. Clearer decisions.':route.page==='rules'?'Your policy. Your process.':route.page==='graph'?'See how the records connect.':'Every order, in one place.'}</h1></div><div className="intro-actions"><button className="glass-button" onClick={()=>go(route.page==='insights'?'ticket':'insights')}><BarChart3 size={17}/>{route.page==='insights'?'Demo ticket':'Insights'}</button><button className="glass-button" onClick={()=>setResetOpen(true)}><RotateCcw size={16}/>Reset demo</button></div></div>
-   {!user?<div className="glass loading-panel">Loading your workspace…</div>:<Suspense fallback={<div className="glass loading-panel">Opening workspace…</div>}><div key={`${route.page}-${route.id}-${user.id}-${resetEpoch}`}>
-    {route.page==='ticket'&&<TicketPage {...props!} ticketId={route.id}/>}{route.page==='needs'&&<NeedsYou {...props!}/>}{route.page==='new'&&<NewRequest {...props!}/>}{route.page==='tickets'&&<TicketsList {...props!}/>}{route.page==='rules'&&(['MDM','Management'].includes(user.role)?<Rules {...props!}/>:<div className="glass loading-panel">Approval rules are managed by MDM and Management.</div>)}{route.page==='insights'&&<Insights user={user} onChange={changed}/>}{route.page==='graph'&&<div className="legacy-graph"><iframe title="Relationship graph and impact simulator" src="/legacy.html#graph" className="graph-frame"/></div>}
-   </div></Suspense>}
-   <footer className="workspace-footer"><span>Prototype · synthetic data</span><span>SPD · QTS · QTG <i/> Five markets, one connected workflow</span></footer>
-  </main></div>
-  {toast&&<div className="lives-toast glass" role="status"><span className="toast-icon"><Bell size={19}/></span><div><strong>New task for you</strong><p>{toast.text}</p></div>{toast.ticket&&<button className="text-button" onClick={()=>{go('ticket',toast.ticket);setToast(null)}}>Open</button>}<button className="icon-button" aria-label="Dismiss notification" onClick={()=>setToast(null)}><X size={16}/></button></div>}
-  {resetOpen&&<div className="modal-backdrop" onClick={()=>!busy&&setResetOpen(false)}><section className="glass lives-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onClick={e=>e.stopPropagation()}><h2 id="reset-title">Start the demo again?</h2><p>Restore the synthetic ticket workspace, including T-1042’s Finance and QA/RA tasks. Audit history is retained.</p><div className="modal-actions"><button className="glass-button" onClick={()=>setResetOpen(false)} disabled={busy}>Cancel</button><button className="primary-button" onClick={()=>void reset()} disabled={busy}>{busy?'Resetting…':'Reset demo'}</button></div></section></div>}
-  {deliveryOpen&&<div className="modal-backdrop" onClick={()=>setDeliveryOpen(false)}><section className="glass lives-modal delivery-modal" role="dialog" aria-modal="true" aria-labelledby="delivery-title" onClick={e=>e.stopPropagation()}><div className="popover-heading"><div><div className="eyebrow">SIMULATED DELIVERY · NO MESSAGES SENT</div><h2 id="delivery-title">Work reaches people where they are.</h2></div><button className="icon-button" aria-label="Close delivery preview" onClick={()=>setDeliveryOpen(false)}><X/></button></div><div className="delivery-grid"><article className="delivery-card"><h3><MessageSquare size={20}/> Microsoft Teams</h3><small>Adaptive card preview · {user?.name}</small><h4>{task?.section_title||'You’re all caught up'}</h4><p>{task?`${task.ticket_code} · ${task.title}`:'New tasks appear here when your team is needed.'}</p>{task&&<><strong>{usd(task.value_waiting_usd)} of orders waiting</strong><p>{task.stuck?'Escalated: waiting over 72 hours.':'Only your team’s information is needed.'}</p><div className="preview-actions">{['Approve','Ask','Decline'].map(label=><button key={label} className={label==='Approve'?'primary-button':'glass-button'} onClick={()=>{setDeliveryOpen(false);go('needs')}}>{label}</button>)}</div></>}</article><article className="delivery-card"><h3><Mail size={20}/> Outlook digest</h3><small>{user?.settings?.digest_time||'09:00'} in your local time · simulated</small><h4>Your daily briefing</h4><p>{digest?.text||'No tasks waiting for you.'}</p>{digest?.items.slice(0,4).map(t=><button key={t.id} className="digest-item" onClick={()=>{setDeliveryOpen(false);go('ticket',t.ticket_id)}}><span>{t.ticket_code} · {t.section_title}</span><strong>{usd(t.value_waiting_usd)}</strong></button>)}<p className="muted">Normal tasks are bundled. Urgent work and escalations follow the delivery policy.</p></article></div><p className="muted"><Clock3 size={15}/> Quiet hours and delegate settings apply to simulated delivery. In-app tasks stay visible.</p></section></div>}
-  {settingsOpen&&user&&<Settings user={user} users={users} onClose={()=>setSettingsOpen(false)} onSaved={()=>{changed();setSettingsOpen(false)}}/>}
- </div>
+type Page = 'request'|'track'|'regional'|'graph'|'rules'|'impact';
+const pages: {id:Page;name:string}[] = [{id:'request',name:'Request'},{id:'track',name:'Track'},{id:'regional',name:'Regional view'},{id:'graph',name:'Graph'},{id:'rules',name:'Rules'},{id:'impact',name:'Impact'}];
+const isPage = (p: string): p is Page => pages.some(x => x.id === p);
+
+export default function App() {
+ const fromHash = () => { const [p, id] = location.hash.slice(1).split('/'); return {page: isPage(p) ? p : 'request' as Page, id}; };
+ const [page, setPage] = useState<Page>(() => fromHash().page);
+ const [trackId, setTrackId] = useState<string|undefined>(() => fromHash().id);
+ const [customerId, setCustomerId] = useState<string>();
+ const [role, setRoleState] = useState<Role>('Sales');
+ const [version, setVersion] = useState(0);
+ const [about, setAbout] = useState(false);
+ const [toast, setToast] = useState('');
+ const [requests, setRequests] = useState<Request[]>([]);
+ useEffect(() => {
+  api<{requests: Request[]}>('/bootstrap').then(d => setRequests(d.requests ?? [])).catch(() => {});
+ }, [role, version]);
+ const taskCount = requests.filter(r => r.stage === role).length;
+ const [theme, setTheme] = useState<'light'|'dark'>(() => {
+  if (typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark') {
+   return 'dark';
+  }
+  return 'light';
+ });
+ useEffect(() => {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e: MediaQueryListEvent) => {
+   try {
+    if (!localStorage.getItem('mg-theme')) {
+     const next = e.matches ? 'dark' : 'light';
+     setTheme(next);
+     document.documentElement.dataset.theme = next;
+     const meta = document.querySelector('meta[name="theme-color"]');
+     if (meta) meta.setAttribute('content', next === 'dark' ? '#0E0F10' : '#f7f7f4');
+    }
+   } catch {}
+  };
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+ }, []);
+ const toggleTheme = () => {
+  const next = theme === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  document.documentElement.dataset.theme = next;
+  try {
+   localStorage.setItem('mg-theme', next);
+   const meta = document.querySelector('meta[name="theme-color"]');
+   if (meta) meta.setAttribute('content', next === 'dark' ? '#0E0F10' : '#f7f7f4');
+  } catch {}
+ };
+ useEffect(() => { const fn = () => { const h = fromHash(); setPage(h.page); if (h.id) setTrackId(h.id); }; addEventListener('hashchange', fn); return () => removeEventListener('hashchange', fn); }, []);
+ useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 3200); return () => clearTimeout(t); }, [toast]);
+ const go = (p: Page, id?: string) => { location.hash = id ? `${p}/${id}` : p; setPage(p); if (p === 'track') setTrackId(id); scrollTo(0, 0); };
+ const setRole = (r: Role) => { setApiRole(r); setRoleState(r); setVersion(v => v + 1); };
+ const openCustomer = (id: string) => { setCustomerId(id); go('graph'); };
+ async function reset() {
+  try { await api('/reset', {method:'POST', headers:{'X-Role':'Admin'}}); setVersion(v => v + 1); setAbout(false); setToast('Demo data reset'); }
+  catch (e) { setToast(errorText(e)); }
+ }
+ return <div className="app">
+  <header className="nav">
+   <a className="brand" href="#request" onClick={() => go('request')}><span className="brand-mark"><Network size={16}/></span>MasterGraph</a>
+   <nav aria-label="Main">{pages.map(p => <button key={p.id} className={page === p.id ? 'active' : ''} onClick={() => go(p.id)}>{p.name}{p.id === 'track' && taskCount > 0 && <span className="nav-badge">{taskCount}</span>}</button>)}</nav>
+   <div className="nav-right">
+    <label className="role-select" title="Demo only: switch who you are acting as">
+     <span>Acting as</span>
+     <select value={role} onChange={e => setRole(e.target.value as Role)}>{roles.map(r => <option key={r} value={r}>{roleLabel[r]}</option>)}</select>
+    </label>
+    <button className="icon-btn theme-toggle" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}</button>
+    <button className="icon-btn" aria-label="How it works" onClick={() => setAbout(true)}><CircleHelp size={18}/></button>
+   </div>
+  </header>
+  <main className="page">
+   <Suspense fallback={<div className="loading">Loading…</div>}>
+    {page === 'request' && <RequestPage key={version} role={role} onCreated={id => { setVersion(v => v + 1); setToast('Request submitted'); go('track', id); }} onOpenCustomer={openCustomer} toast={setToast}/>}
+    {page === 'track' && <Track key={version} role={role} selectedId={trackId} onSelect={id => go('track', id)} toast={setToast} onUpdated={() => setVersion(v => v + 1)}/>}
+    {page === 'regional' && <Regional key={version} onOpenCustomer={openCustomer} onOpenRequest={id => go('track', id)}/>}
+    {page === 'graph' && <Graph key={version} initialCustomerId={customerId}/>}
+    {page === 'rules' && <Rules key={version} role={role} toast={setToast}/>}
+    {page === 'impact' && <Impact key={version}/>}
+   </Suspense>
+  </main>
+  {about && <div className="modal-backdrop" onClick={() => setAbout(false)}>
+   <div className="modal wide" role="dialog" aria-label="How it works" onClick={e => e.stopPropagation()}>
+    <div className="modal-head"><h2>How it works</h2><button className="icon-btn" aria-label="Close" onClick={() => setAbout(false)}><X size={18}/></button></div>
+    <a href="/process-flow.svg" target="_blank" rel="noreferrer" title="Open full size"><img className="flow-img" src="/process-flow.svg" alt="Process flow: request by email or form, sorted, duplicate-checked, one complete form, approvals in Teams with escalation, approved (ready for MDM final check and SAP posting), created in SAP B1 via the Service Layer, and clean records feeding the regional view."/></a>
+    <h3>Not in version 1</h3>
+    <ul className="plain">
+     <li>Live SAP B1 connection (payload is simulated)</li>
+     <li>Real sign-in (role switcher is for the demo)</li>
+     <li>Seasonal forecasting (needs more than 12 months of data)</li>
+     <li>Automatic merging of duplicates (preview only)</li>
+    </ul>
+    <h3>Data &amp; assumptions</h3>
+    <ul className="plain small">
+     <li><strong>All data is synthetic.</strong> No dataset was provided, so the app generates one: 18 customer records across 3 entities (SPD, QTS, QTG), 3 products, 5 countries, 415 orders, Oct 2025 – Sep 2026.</li>
+     <li><strong>Planted on purpose</strong> to reflect the brief: National University Hospital exists under SPD and again as NUH Singapore under QTS; Johor Distribution stops ordering after June; Vietnam grows each month; Siam Hospital Group dominates Thailand; some customers buy only Product A.</li>
+     <li><strong>Demand</strong> = confirmed purchase orders, in units. Enquiries and MDM setup requests are tracked but excluded.</li>
+     <li><strong>Growth</strong> = confirmed units in the last 3 months vs the 3 months before.</li>
+     <li><strong>Forecast</strong>: the 6–12 month average, a linear trend and Holt’s smoothing are each tested on the last 6 months, per country. A newer method is used only if it beats the average.</li>
+     <li><strong>Early warning</strong>: customers still ordering whose last 3 months are 15%+ below the 3 before.</li>
+     <li><strong>Email sorting</strong>: rule-based, and shows the phrases it used (PO number, quantity, quote request, setup fields).</li>
+     <li><strong>Costs</strong>: staff hour and build cost on the Impact page are assumptions to replace with Lives Group’s figures.</li>
+     <li><strong>Impact</strong>: 18 days is from the brief. MasterGraph timing assumes each approver acts within a day; savings use the slider assumptions on the Impact page.</li>
+    </ul>
+    <button className="btn secondary" onClick={reset}>Reset demo data</button>
+   </div>
+  </div>}
+  {toast && <div className="toast" role="status">{toast}</div>}
+ </div>;
 }
 function Settings({user,users,onClose,onSaved}:{user:User;users:User[];onClose:()=>void;onSaved:()=>void}){const [settings,setSettings]=useState({...{digest_time:'09:00',quiet_start:'19:00',quiet_end:'08:00',delegate_id:'',away:false},...user.settings});const [error,setError]=useState('');const [busy,setBusy]=useState(false);const save=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);try{await ticketApi(`/users/${user.id}/settings`,user.id,{method:'PUT',body:JSON.stringify(settings)});onSaved()}catch(e){setError((e as Error).message)}finally{setBusy(false)}};return <div className="modal-backdrop" onClick={onClose}><form className="glass lives-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={e=>e.stopPropagation()} onSubmit={save}><div className="popover-heading"><h2 id="settings-title">Make notifications work for you.</h2><button type="button" className="icon-button" aria-label="Close settings" onClick={onClose}><X/></button></div><p>{user.name} · {user.country}</p>{error&&<p role="alert" className="error-banner">{error}</p>}<div className="settings-grid">{[['digest_time','Daily digest'],['quiet_start','Quiet hours start'],['quiet_end','Quiet hours end']].map(([key,label])=><label key={key}>{label}<input type="time" required value={settings[key as 'digest_time']} onChange={e=>setSettings(s=>({...s,[key]:e.target.value}))}/></label>)}</div><label className="check-field"><input type="checkbox" checked={settings.away} onChange={e=>setSettings(s=>({...s,away:e.target.checked}))}/>I’m away — route new work to my delegate</label><label>Delegate<select value={settings.delegate_id||''} onChange={e=>setSettings(s=>({...s,delegate_id:e.target.value}))}><option value="">Choose a delegate</option>{users.filter(u=>u.id!==user.id&&u.role===user.role).map(u=><option key={u.id} value={u.id}>{u.name} · {u.role}</option>)}</select></label><p className="muted">Delivery is simulated. No Teams messages or emails leave this prototype.</p><button className="primary-button" disabled={busy}>{busy?'Saving…':'Save preferences'}</button></form></div>}

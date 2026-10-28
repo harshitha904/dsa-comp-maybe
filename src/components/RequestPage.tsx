@@ -127,7 +127,9 @@ export default function RequestPage({role, onCreated, onOpenCustomer, toast}: {r
  }
 
  const strong = matches.filter(m => m.score >= 80);
- return <div className="request-page">
+ const isHero = step === 'search' && query.trim().length < 3 && mode !== 'email';
+ const inForm = step === 'form';
+ return <div className={`request-page ${isHero ? 'is-hero' : inForm ? 'in-form' : 'has-results'}`}>
   <section className="ask">
    <h1>What do you need set up?</h1>
    <div className="chips center">{types.map(x => <button key={x} className={`chip ${type === x ? 'on' : ''}`} onClick={() => { setType(x); setValues(v => ({...v, type:x})); }}>{x}</button>)}</div>

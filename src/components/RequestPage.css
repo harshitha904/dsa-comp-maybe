@@ -1,12 +1,17 @@
-.request-page{display:flex;flex-direction:column;gap:20px;align-items:center}
-.ask{display:flex;flex-direction:column;align-items:center;gap:14px;padding:32px 0 8px;width:100%}
-.ask h1{font-size:30px;letter-spacing:-.8px}
+.request-page{display:flex;flex-direction:column;gap:20px;align-items:center;min-height:calc(100vh - 56px - 48px);width:100%;box-sizing:border-box}
+.request-page.is-hero{justify-content:center;padding-bottom:4vh}
+.request-page.has-results{justify-content:flex-start;padding-top:max(20px,calc((100vh - 56px - 220px)/2 - 4vh));padding-bottom:48px}
+.request-page.in-form{justify-content:flex-start;padding-top:12px;padding-bottom:48px}
+
+.ask{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+.ask h1{font-size:30px;letter-spacing:-.8px;text-align:center}
 .chips.center{justify-content:center}
-.search-box{display:flex;align-items:center;gap:10px;width:min(620px,100%);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;box-shadow:var(--shadow-sm);color:var(--muted)}
-.search-box:focus-within{border-color:var(--green)}
+.search-box{display:flex;align-items:center;gap:10px;width:min(720px,100%);background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:13px 16px;box-shadow:var(--shadow-sm);color:var(--muted)}
+.search-box:focus-within{border-color:var(--green);box-shadow:0 0 0 3px var(--focus-ring)}
 .search-box input{flex:1;border:0;outline:0;font-size:16px;background:none;color:var(--ink)}
-.link-btn{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--green);font-size:13px;font-weight:500}
-.narrow{width:min(620px,100%)}
+.search-box input::placeholder{color:var(--muted)}
+.link-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;background:none;color:var(--green);font-size:13px;font-weight:500}
+.narrow{width:min(720px,100%)}
 .results{display:flex;flex-direction:column;gap:10px}
 .match{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px}
 .match-name{display:flex;align-items:center;gap:8px;margin-bottom:3px}
