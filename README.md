@@ -61,7 +61,7 @@ Locally, data is stored in `data/mastergraph.sqlite` (override with `DB_PATH`). 
 
 Official tickets can export a simulated SAP resource payload. The generic CSV export is a demonstration starting point for DTW mapping, not a validated SAP import template. Neither endpoint writes to SAP. Production requires field mapping, sandbox import tests, idempotency, reconciliation and secure credentials.
 
-Repository: [harshitha904/dsa-comp-maybe](https://github.com/harshitha904/dsa-comp-maybe). The existing Vercel project remains `dsa-comp-maybe`; deployment status belongs in [deployment notes](docs/deployment.md). Updating source or running a build does not establish that the hosted application has been updated.
+Repository: [tancysam/dsa-comp-maybe](https://github.com/tancysam/dsa-comp-maybe). The restored ticket workspace originates from [harshitha904/dsa-comp-maybe](https://github.com/harshitha904/dsa-comp-maybe); see [integration provenance](docs/ui-integration.md). The existing Vercel project remains `dsa-comp-maybe`; deployment status belongs in [deployment notes](docs/deployment.md). Updating source or running a build does not establish that the hosted application has been updated.
 
 See the [nine-step demo](docs/demo-script.md), [brief-to-code gap analysis](docs/v2-gap-analysis.md), and [production plan](docs/production-plan.md). No full Figma frame set was created: implemented browser states are the current design deliverable. Earlier executive-summary/PDF artifacts describe the historical vision and should not be treated as current implementation evidence.
 
