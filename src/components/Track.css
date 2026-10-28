@@ -5,6 +5,31 @@
 .req{display:flex;flex-direction:column;gap:5px;text-align:left;border:1px solid transparent;background:none;border-radius:10px;padding:11px 12px}
 .req:hover{background:var(--soft)}.req.sel{background:var(--green-soft);border-color:var(--green-line)}
 .req-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+/* detail pane and ticket card */
+.detail-pane{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ticket-card{display:flex;flex-direction:column;gap:14px}
+.ticket-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ticket-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ticket-id{display:inline-flex;align-items:center;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--soft);color:var(--green);border:1px solid var(--line);letter-spacing:0.5px}
+.ticket-type-country{font-size:13px;color:var(--muted);font-weight:500}
+.ticket-headline{display:flex;flex-direction:column;gap:4px}
+.ticket-name{font-size:20px;font-weight:700;letter-spacing:-0.4px;color:var(--ink);margin:0}
+.ticket-status{font-size:14px;color:var(--ink);margin:0;line-height:1.5}
+.ticket-unlocks{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.unlocks-head{display:flex;align-items:center;justify-content:space-between}
+.unlocks-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px}
+.unlock-chips{display:flex;flex-wrap:wrap;gap:8px}
+.unlock-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:550;border:1px solid var(--line);transition:background-color 0.15s ease,border-color 0.15s ease,color 0.15s ease}
+@media (prefers-reduced-motion: reduce){.unlock-chip{transition:none}}
+.unlock-chip.unlocked{background:var(--soft);color:var(--ink);border-color:var(--green-line)}
+.unlock-chip.unlocked .unlock-icon{color:var(--green)}
+.unlock-chip.locked{background:var(--card);color:var(--muted);border-color:var(--line);opacity:0.8}
+.unlock-chip.locked .unlock-icon{color:var(--muted)}
+.unlock-name{font-weight:600}
+.unlock-role{font-size:11px;font-weight:400}
+.ticket-note{margin-top:2px;font-style:italic}
+
 .detail{display:flex;flex-direction:column;gap:18px}
 .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.detail-head h2{font-size:20px;margin-bottom:4px}
 .stepper{list-style:none;margin:0;padding:6px 0 0;display:flex}
