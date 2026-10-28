@@ -95,7 +95,7 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
     <thead><tr><th>Country</th>{productCols.map(p => <th key={p.id}>{p.name}</th>)}{product === 'all' && <th>Total</th>}</tr></thead>
     <tbody>{view.countries.map(c => <tr key={c.country} className={country === c.country ? 'sel' : ''} onClick={() => setCountry(country === c.country ? '' : c.country)}>
      <td><span className="cc">{countryCode[c.country]}</span>{c.country}</td>
-     {productCols.map(p => { const cell = c.byProduct.find(b => b.productId === p.id); const heat = cell ? cell.quantity / max : 0; return <td key={p.id} style={{background:`rgba(36,92,79,${(heat * 0.22).toFixed(3)})`}}>{cell ? <><span className="num">{fmt(cell.quantity)}</span><Growth value={cell.growth3mPct}/></> : <span className="flat">–</span>}</td>; })}
+     {productCols.map(p => { const cell = c.byProduct.find(b => b.productId === p.id); const heat = cell ? cell.quantity / max : 0; return <td key={p.id} style={{background:`rgba(var(--green-rgb), ${(heat * 0.25).toFixed(3)})`}}>{cell ? <><span className="num">{fmt(cell.quantity)}</span><Growth value={cell.growth3mPct}/></> : <span className="flat">–</span>}</td>; })}
      {product === 'all' && <td className="total"><span className="num">{fmt(c.confirmedQuantity)}</span><Growth value={c.growth3mPct}/></td>}
     </tr>)}</tbody>
    </table>
@@ -117,14 +117,14 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
    <div className="card">
     <div className="card-head"><h2>Monthly demand{selected ? ` · ${selected.country}` : ''}</h2>{selected && <button className="btn ghost" onClick={() => setCountry('')}>Show all countries</button>}</div>
     <div className="chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart} margin={{top:8, right:8, left:-12, bottom:0}}>
-     <CartesianGrid stroke="#ecece6" vertical={false}/>
-     <XAxis dataKey="month" tick={{fontSize:11, fill:'#6b736f'}} tickLine={false} axisLine={false}/>
-     <YAxis tick={{fontSize:11, fill:'#6b736f'}} tickLine={false} axisLine={false} domain={['auto', 'auto']}/>
-     <Tooltip formatter={(v, n) => [fmt(Number(v)), n === 'actual' ? 'Confirmed' : 'Forecast']} contentStyle={{borderRadius:8, border:'1px solid #e6e6e0', fontSize:12}}/>
-     <Line dataKey="actual" stroke="#245c4f" strokeWidth={2.5} dot={false}/>
-     <Line dataKey="forecast" stroke="#b7791f" strokeWidth={2} strokeDasharray="5 4" dot={{r:4, fill:'#b7791f'}}/>
+     <CartesianGrid stroke="var(--chart-grid)" vertical={false}/>
+     <XAxis dataKey="month" tick={{fontSize:11, fill:'var(--chart-axis)'}} tickLine={false} axisLine={false}/>
+     <YAxis tick={{fontSize:11, fill:'var(--chart-axis)'}} tickLine={false} axisLine={false} domain={['auto', 'auto']}/>
+     <Tooltip formatter={(v, n) => [fmt(Number(v)), n === 'actual' ? 'Confirmed' : 'Forecast']} contentStyle={{borderRadius:8, border:'1px solid var(--chart-tooltip-border)', background:'var(--chart-tooltip-bg)', color:'var(--ink)', fontSize:12}} itemStyle={{color:'var(--ink)'}} labelStyle={{color:'var(--muted)', fontWeight:600}}/>
+     <Line dataKey="actual" stroke="var(--green)" strokeWidth={2.5} dot={false}/>
+     <Line dataKey="forecast" stroke="var(--amber)" strokeWidth={2} strokeDasharray="5 4" dot={{r:4, fill:'var(--amber)'}}/>
     </LineChart></ResponsiveContainer></div>
-    <div className="legend"><span><i style={{background:'#245c4f'}}/>Confirmed</span><span><i className="dash"/>Forecast</span></div>
+    <div className="legend"><span><i style={{background:'var(--green)'}}/>Confirmed</span><span><i className="dash"/>Forecast</span></div>
    </div>
    <div className="card forecast-card">
     <h2>Which forecast is more accurate?</h2>

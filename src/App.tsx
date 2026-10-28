@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { CircleHelp, Network, X } from 'lucide-react';
+import { CircleHelp, Moon, Network, Sun, X } from 'lucide-react';
 import { api, errorText, roleLabel, roles, setApiRole, type Role } from './api';
 const RequestPage = lazy(() => import('./components/RequestPage'));
 const Track = lazy(() => import('./components/Track'));
@@ -21,6 +21,38 @@ export default function App() {
  const [version, setVersion] = useState(0);
  const [about, setAbout] = useState(false);
  const [toast, setToast] = useState('');
+ const [theme, setTheme] = useState<'light'|'dark'>(() => {
+  if (typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark') {
+   return 'dark';
+  }
+  return 'light';
+ });
+ useEffect(() => {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onChange = (e: MediaQueryListEvent) => {
+   try {
+    if (!localStorage.getItem('mg-theme')) {
+     const next = e.matches ? 'dark' : 'light';
+     setTheme(next);
+     document.documentElement.dataset.theme = next;
+     const meta = document.querySelector('meta[name="theme-color"]');
+     if (meta) meta.setAttribute('content', next === 'dark' ? '#101412' : '#f7f7f4');
+    }
+   } catch {}
+  };
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+ }, []);
+ const toggleTheme = () => {
+  const next = theme === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  document.documentElement.dataset.theme = next;
+  try {
+   localStorage.setItem('mg-theme', next);
+   const meta = document.querySelector('meta[name="theme-color"]');
+   if (meta) meta.setAttribute('content', next === 'dark' ? '#101412' : '#f7f7f4');
+  } catch {}
+ };
  useEffect(() => { const fn = () => { const h = fromHash(); setPage(h.page); if (h.id) setTrackId(h.id); }; addEventListener('hashchange', fn); return () => removeEventListener('hashchange', fn); }, []);
  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 3200); return () => clearTimeout(t); }, [toast]);
  const go = (p: Page, id?: string) => { location.hash = id ? `${p}/${id}` : p; setPage(p); if (p === 'track') setTrackId(id); scrollTo(0, 0); };
@@ -39,6 +71,7 @@ export default function App() {
      <span>Acting as</span>
      <select value={role} onChange={e => setRole(e.target.value as Role)}>{roles.map(r => <option key={r} value={r}>{roleLabel[r]}</option>)}</select>
     </label>
+    <button className="icon-btn theme-toggle" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}</button>
     <button className="icon-btn" aria-label="How it works" onClick={() => setAbout(true)}><CircleHelp size={18}/></button>
    </div>
   </header>

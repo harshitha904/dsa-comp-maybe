@@ -7,7 +7,7 @@
 .track-bar{position:relative;height:44px;background:var(--soft);border-radius:8px}
 .seg{position:absolute;top:0;bottom:0;border-radius:6px;border:2px solid var(--card);display:flex;align-items:center;padding:0 7px;overflow:hidden}
 .seg span{font-size:11px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg.wait{background:#dbe7e2;color:#1b463c}.seg.work{background:var(--green);color:#fff}.seg.bad{background:var(--red-soft);color:var(--red)}
+.seg.wait{background:var(--wait-bg);color:var(--wait-ink)}.seg.work{background:var(--green);color:var(--btn-ink)}.seg.bad{background:var(--red-soft);color:var(--red)}
 .axis{position:relative;height:18px;margin-left:112px;font-size:11px;color:var(--muted)}
 .axis span{position:absolute;transform:translateX(-50%)}.axis span:first-child{transform:none}.axis span:last-child{transform:translateX(-100%)}
 .foot{margin-top:10px}

@@ -2,7 +2,7 @@
 .ask{display:flex;flex-direction:column;align-items:center;gap:14px;padding:32px 0 8px;width:100%}
 .ask h1{font-size:30px;letter-spacing:-.8px}
 .chips.center{justify-content:center}
-.search-box{display:flex;align-items:center;gap:10px;width:min(620px,100%);background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 16px;box-shadow:0 1px 2px rgba(0,0,0,.03),0 6px 20px rgba(0,0,0,.04);color:var(--muted)}
+.search-box{display:flex;align-items:center;gap:10px;width:min(620px,100%);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;box-shadow:var(--shadow-sm);color:var(--muted)}
 .search-box:focus-within{border-color:var(--green)}
 .search-box input{flex:1;border:0;outline:0;font-size:16px;background:none;color:var(--ink)}
 .link-btn{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--green);font-size:13px;font-weight:500}
@@ -13,7 +13,7 @@
 .row-end{display:flex;justify-content:flex-end;margin-top:14px}
 .form-grid{display:grid;grid-template-columns:1fr 280px;gap:16px;width:100%;align-items:start}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.field .need{border-color:#e7c98f;background:#fffcf6}
+.field .need{border-color:var(--need-border);background:var(--need-bg)}
 .override{display:flex;flex-direction:column;gap:8px;margin-top:16px}
 .form-grid .alert{margin-top:12px}
 .side{display:flex;flex-direction:column;gap:12px}
@@ -21,7 +21,7 @@
 .route li{display:flex;align-items:center;gap:10px;padding:7px 0;position:relative;font-size:13px}
 .route li span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--green-soft);color:var(--green);font-size:11px;font-weight:600;z-index:1}
 .route li:not(:last-child)::after{content:'';position:absolute;left:10.5px;top:29px;height:14px;width:1px;background:var(--line)}
-.route li:last-child span{background:var(--green);color:#fff}
+.route li:last-child span{background:var(--green);color:var(--btn-ink)}
 .lock-note{display:flex;gap:6px;align-items:flex-start}.lock-note svg{margin-top:2px;color:var(--amber);flex-shrink:0}
 @media (max-width:860px){.form-grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.match{flex-direction:column;align-items:flex-start}}
 .triage{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
