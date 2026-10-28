@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { CircleHelp, Moon, Network, Sun, X } from 'lucide-react';
-import { api, errorText, roleLabel, roles, setApiRole, type Role } from './api';
+import { api, errorText, roleLabel, roles, setApiRole, type Request, type Role } from './api';
 const RequestPage = lazy(() => import('./components/RequestPage'));
 const Track = lazy(() => import('./components/Track'));
 const Regional = lazy(() => import('./components/Regional'));
@@ -21,6 +21,11 @@ export default function App() {
  const [version, setVersion] = useState(0);
  const [about, setAbout] = useState(false);
  const [toast, setToast] = useState('');
+ const [requests, setRequests] = useState<Request[]>([]);
+ useEffect(() => {
+  api<{requests: Request[]}>('/bootstrap').then(d => setRequests(d.requests ?? [])).catch(() => {});
+ }, [role, version]);
+ const taskCount = requests.filter(r => r.stage === role).length;
  const [theme, setTheme] = useState<'light'|'dark'>(() => {
   if (typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark') {
    return 'dark';
@@ -65,7 +70,7 @@ export default function App() {
  return <div className="app">
   <header className="nav">
    <a className="brand" href="#request" onClick={() => go('request')}><span className="brand-mark"><Network size={16}/></span>MasterGraph</a>
-   <nav aria-label="Main">{pages.map(p => <button key={p.id} className={page === p.id ? 'active' : ''} onClick={() => go(p.id)}>{p.name}</button>)}</nav>
+   <nav aria-label="Main">{pages.map(p => <button key={p.id} className={page === p.id ? 'active' : ''} onClick={() => go(p.id)}>{p.name}{p.id === 'track' && taskCount > 0 && <span className="nav-badge">{taskCount}</span>}</button>)}</nav>
    <div className="nav-right">
     <label className="role-select" title="Demo only: switch who you are acting as">
      <span>Acting as</span>
@@ -77,8 +82,8 @@ export default function App() {
   </header>
   <main className="page">
    <Suspense fallback={<div className="loading">Loading…</div>}>
-    {page === 'request' && <RequestPage key={version} role={role} onCreated={id => { setToast('Request submitted'); go('track', id); }} onOpenCustomer={openCustomer} toast={setToast}/>}
-    {page === 'track' && <Track key={version} role={role} selectedId={trackId} onSelect={id => go('track', id)} toast={setToast}/>}
+    {page === 'request' && <RequestPage key={version} role={role} onCreated={id => { setVersion(v => v + 1); setToast('Request submitted'); go('track', id); }} onOpenCustomer={openCustomer} toast={setToast}/>}
+    {page === 'track' && <Track key={version} role={role} selectedId={trackId} onSelect={id => go('track', id)} toast={setToast} onUpdated={() => setVersion(v => v + 1)}/>}
     {page === 'regional' && <Regional key={version} onOpenCustomer={openCustomer} onOpenRequest={id => go('track', id)}/>}
     {page === 'graph' && <Graph key={version} initialCustomerId={customerId}/>}
     {page === 'rules' && <Rules key={version} role={role} toast={setToast}/>}
