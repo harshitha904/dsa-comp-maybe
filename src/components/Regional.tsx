@@ -87,7 +87,7 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
    <div className="stat"><div className="label">Kept out of demand</div><div className="value num">{totals.excluded.orders}</div><div className="sub">{totals.excluded.enquiry.orders} enquiries · {totals.excluded.setup.orders} setup requests</div></div>
   </div>
 
-  <BubbleMap countries={view.countries} signals={view.opportunities} selected={country} onSelect={c => setCountry(country === c ? '' : c)}/>
+  <BubbleMap countries={view.countries} signals={view.opportunities} risks={view.risks} selected={country} onSelect={c => setCountry(country === c ? '' : c)}/>
 
   <div className="card table-card">
    <div className="card-head"><h2>Country × product</h2><span className="muted small">Units · 3-month growth · click a row to chart it</span></div>
@@ -174,22 +174,112 @@ export default function Regional({onOpenCustomer, onOpenRequest}: {onOpenCustome
 
 // Rough geographic placement so the region reads as a map; size and colour come from the data.
 const spots: Record<string, {x:number; y:number}> = {Thailand:{x:235,y:100}, Vietnam:{x:440,y:105}, Malaysia:{x:250,y:255}, Singapore:{x:395,y:300}, Indonesia:{x:590,y:265}};
-function BubbleMap({countries, signals, selected, onSelect}: {countries:Country[]; signals:Signal[]; selected:string; onSelect:(c:string)=>void}) {
+const candidateSlots = [
+ {id:'top-right', x:530, y:20},
+ {id:'bottom-left', x:15, y:310},
+ {id:'top-left', x:15, y:15},
+ {id:'bottom-right', x:535, y:310}
+];
+
+function circleIntersectsRect(cx: number, cy: number, r: number, rx: number, ry: number, rw: number, rh: number) {
+ const nx = Math.max(rx, Math.min(cx, rx + rw));
+ const ny = Math.max(ry, Math.min(cy, ry + rh));
+ const dx = cx - nx;
+ const dy = cy - ny;
+ return (dx * dx + dy * dy) < (r * r);
+}
+
+function BubbleMap({countries, signals, risks = [], selected, onSelect}: {countries:Country[]; signals:Signal[]; risks?:Signal[]; selected:string; onSelect:(c:string)=>void}) {
  const max = Math.max(...countries.map(c => c.confirmedQuantity));
  const tone = (g: number|null) => g == null ? 'flat' : g > 3 ? 'up' : g < -3 ? 'down' : 'flat';
- const top = [...signals].sort((a, b) => rank[a.priority] - rank[b.priority]).find(s => s.countries.some(c => spots[c]));
- const anchor = top && spots[top.countries.find(c => spots[c])!];
+ const bubbles = countries.filter(c => spots[c.country]).map(c => {
+  const p = spots[c.country];
+  const r = 24 + 42 * Math.sqrt(c.confirmedQuantity / max);
+  return {country:c.country, cx:p.x, cy:p.y, r, qty:c.confirmedQuantity, growth:c.growth3mPct, tone:tone(c.growth3mPct)};
+ });
+
+ const topOpp = [...signals].sort((a, b) => rank[a.priority] - rank[b.priority]).find(s => s.countries.some(c => spots[c]));
+ const topRisk = [...risks].sort((a, b) => rank[a.priority] - rank[b.priority]).find(s => s.countries.some(c => spots[c]));
+
+ const taken = new Set<string>();
+ function pickSlot() {
+  for (const slot of candidateSlots) {
+   if (taken.has(slot.id)) continue;
+   if (!bubbles.some(b => circleIntersectsRect(b.cx, b.cy, b.r + 12, slot.x, slot.y, 210, 60))) {
+    taken.add(slot.id); return slot;
+   }
+  }
+  for (const slot of candidateSlots) {
+   if (taken.has(slot.id)) continue;
+   if (!bubbles.some(b => circleIntersectsRect(b.cx, b.cy, b.r, slot.x, slot.y, 210, 60))) {
+    taken.add(slot.id); return slot;
+   }
+  }
+  let best = candidateSlots.find(slot => !taken.has(slot.id)) ?? candidateSlots[0];
+  let maxD = -Infinity;
+  for (const slot of candidateSlots) {
+   if (taken.has(slot.id)) continue;
+   const d = Math.min(...bubbles.map(b => {
+    const nx = Math.max(slot.x, Math.min(b.cx, slot.x + 210));
+    const ny = Math.max(slot.y, Math.min(b.cy, slot.y + 60));
+    return Math.hypot(b.cx - nx, b.cy - ny) - b.r;
+   }));
+   if (d > maxD) { maxD = d; best = slot; }
+  }
+  taken.add(best.id); return best;
+ }
+
+ const callouts = [
+  topOpp && {signal:topOpp, kind:'opp' as const, country:topOpp.countries.find(c => spots[c])!},
+  topRisk && {signal:topRisk, kind:'risk' as const, country:topRisk.countries.find(c => spots[c])!}
+ ].filter((x): x is {signal:Signal; kind:'opp'|'risk'; country:string} => Boolean(x)).map(item => {
+  const slot = pickSlot();
+  const b = bubbles.find(x => x.country === item.country);
+  const p = spots[item.country];
+  const r = b ? b.r : 35;
+  const corners = [
+   {x:slot.x, y:slot.y},
+   {x:slot.x + 210, y:slot.y},
+   {x:slot.x, y:slot.y + 60},
+   {x:slot.x + 210, y:slot.y + 60}
+  ];
+  let nearest = corners[0], minDist = Infinity;
+  for (const c of corners) {
+   const d = Math.hypot(c.x - p.x, c.y - p.y);
+   if (d < minDist) { minDist = d; nearest = c; }
+  }
+  const dx = nearest.x - p.x, dy = nearest.y - p.y;
+  const dist = Math.hypot(dx, dy);
+  const startX = dist > 0 ? p.x + (dx / dist) * r : p.x;
+  const startY = dist > 0 ? p.y + (dy / dist) * r : p.y;
+  return {
+   ...item, slot,
+   line: {x1:startX, y1:startY, x2:nearest.x, y2:nearest.y}
+  };
+ });
+
  return <div className="card bubble-card">
   <div className="card-head"><h2>Where demand is moving</h2><span className="muted small">Bubble size = confirmed units · colour = 3-month growth</span></div>
   <svg viewBox="0 0 760 380" role="img" aria-label="Confirmed demand and growth by country">
-   {anchor && <g className="b-callout"><line x1={anchor.x} y1={anchor.y} x2={Math.min(anchor.x + 150, 540)} y2={Math.max(anchor.y - 55, 40)}/><foreignObject x={Math.min(anchor.x + 150, 540)} y={Math.max(anchor.y - 80, 14)} width="210" height="60"><div className="b-tag">{top!.title}</div></foreignObject></g>}
-   {countries.filter(c => spots[c.country]).map(c => { const p = spots[c.country], r = 24 + 42 * Math.sqrt(c.confirmedQuantity / max), t = tone(c.growth3mPct);
-    return <g key={c.country} className={`b-node ${t} ${selected === c.country ? 'sel' : ''}`} role="button" tabIndex={0} aria-label={`${c.country}: ${fmt(c.confirmedQuantity)} units`} onClick={() => onSelect(c.country)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.country); } }}>
-     <circle cx={p.x} cy={p.y} r={r}/>
-     <text x={p.x} y={p.y - 4} className="b-name">{c.country}</text>
-     <text x={p.x} y={p.y + 12} className="b-val">{c.growth3mPct == null ? '–' : `${Math.round(c.growth3mPct) > 0 ? '+' : ''}${Math.round(c.growth3mPct) || 0}%`} · {fmt(c.confirmedQuantity)}</text>
-    </g>; })}
+   {bubbles.map(b => (
+    <g key={b.country} className={`b-node ${b.tone} ${selected === b.country ? 'sel' : ''}`} role="button" tabIndex={0} aria-label={`${b.country}: ${fmt(b.qty)} units`} onClick={() => onSelect(b.country)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(b.country); } }}>
+     <circle cx={b.cx} cy={b.cy} r={b.r}/>
+     <text x={b.cx} y={b.cy - 4} className="b-name">{b.country}</text>
+     <text x={b.cx} y={b.cy + 12} className="b-val">{b.growth == null ? '–' : `${Math.round(b.growth) > 0 ? '+' : ''}${Math.round(b.growth) || 0}%`} · {fmt(b.qty)}</text>
+    </g>
+   ))}
+   {callouts.map(c => (
+    <g key={c.kind} className={`b-callout ${c.kind}`} style={{pointerEvents:'none'}}>
+     <line x1={c.line.x1} y1={c.line.y1} x2={c.line.x2} y2={c.line.y2}/>
+     <foreignObject x={c.slot.x} y={c.slot.y} width="210" height="60" style={{pointerEvents:'none'}}>
+      <div className={`b-tag ${c.kind}`}>{c.signal.title}</div>
+     </foreignObject>
+    </g>
+   ))}
   </svg>
-  {top && <p className="b-action"><ArrowRight size={14}/><span><strong>Next best action:</strong> {top.action}</span></p>}
+  {(topOpp || topRisk) && <div className="b-actions">
+   {topOpp && <p className="b-action"><ArrowRight size={14}/><span><strong>Next best action:</strong> {topOpp.action}</span></p>}
+   {topRisk && <p className="b-action b-risk"><ArrowRight size={14}/><span><strong>Biggest risk:</strong> {topRisk.action}</span></p>}
+  </div>}
  </div>;
 }
