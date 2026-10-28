@@ -8,11 +8,13 @@ All data is **synthetic**. Customers, orders, requests and outcomes are illustra
 
 | Area | Where | What it does |
 | --- | --- | --- |
-| Control center | `src/App.tsx` | Summary tiles for confirmed units, customer records, pending requests and kept-out signals |
-| Graph explorer | `src/components/Intelligence.tsx` | Customer, product and country graph; record inspector; duplicate evidence; read-only consolidation preview |
-| MDM workspace | `src/components/Requests.tsx` | Request intake with duplicate check, approval actions, audit history, simulated SAP payload download |
-| Regional intelligence | `src/components/Analytics.tsx` | Demand trend, country heatmap, country detail, next-month forecast, forecast accuracy check, risks and opportunities |
-| Demo and methodology | `src/App.tsx` | Walkthrough and stated prototype boundaries |
+| Request | `src/components/RequestPage.tsx`, `server/triage.js` | Search-first duplicate check; pasted emails sorted into purchase order, enquiry or setup request (with reasons); only setup requests open the form, which shows the approval route and Finance-only fields |
+| Track | `src/components/Track.tsx` | Request list, stage progress bar, approve / ask for info / reject by role, simulated Teams approval card, auto-escalation after the SLA, audit history, simulated SAP B1 payload |
+| Regional view | `src/components/Regional.tsx` | Bubble map, country × product and entity × country tables, monthly demand, three forecast models backtested per country, early drop-off warnings, prioritised risks and opportunities |
+| Graph | `src/components/Graph.tsx` | Customer, product and country graph; duplicate evidence; read-only merge preview |
+| Rules | `src/components/Rules.tsx` | MDM team edits approval steps, required fields (incl. Finance-only) and the escalation time without IT; applies to new requests only |
+| Impact | `src/components/Impact.tsx` | Amy's 18-day request vs MasterGraph, live counts, savings estimate, cost and payback, alternatives considered, adoption plan |
+| How it works | `src/App.tsx` | Process flow to SAP B1, what is not in version 1, demo data reset |
 | API | `server/index.js` | Express 5 routes listed below |
 | Domain rules | `server/domain.js` | Duplicate scoring, request validation, approval routing, redaction, simulated SAP payload |
 | Analytics | `server/analytics.js` | Demand totals, growth windows, forecast backtest, risk and opportunity rules, co-purchase |
@@ -41,7 +43,7 @@ npm run dev
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | API with file watching on port 3001, and Vite on port 5173 |
-| `npm test` | Runs `node --test tests/*.test.js` (41 tests) |
+| `npm test` | Runs `node --test tests/*.test.js` (53 tests) |
 | `npm run build` | Runs `tsc -b`, then `vite build` into `dist/` |
 | `npm start` | Runs the API on port 3001 (set `PORT` to change it) and serves `dist/` as the UI |
 
@@ -52,9 +54,9 @@ npm run dev
 - **File:** `data/mastergraph.sqlite` in the project root. Set `DB_PATH` to use another file. The `data/` folder is gitignored and created on start.
 - **Structure:** one `records` table with `(collection, id, value)`. Collections are `customers`, `products`, `orders`, `requests` and `audit`. Values are JSON.
 - **First start:** if the table is empty, the server seeds the synthetic fixture from `server/seed.js`. The current seed produces 18 customers, 3 products, 415 orders and 4 requests.
-- **Reset** restores the fixture and deletes all records, including requests and audit entries. Either:
-  - Sidebar **Reset demo data** in the UI, which sends `POST /api/reset` with `X-Role: Admin`.
-  - `POST /api/reset` directly. This endpoint does not check the role.
+- **Reset** restores the fixture and deletes all records, including requests and audit entries.
+  - Requires `X-Role: Admin`. Note that this role check is a demo selector, not authentication.
+  - The UI **Reset demo data** button sends `POST /api/reset` with `X-Role: Admin`. Direct API calls must include `X-Role: Admin` (or receive `403 Forbidden`).
 - **Seed changes do not migrate.** A database file created before a seed change keeps its old records until you reset or delete `data/mastergraph.sqlite`.
 - **Synthetic identifiers:** customer identifiers use `DEMO-n` or the synthetic codes in `seed.js`. Emails use `.example` or `.test` domains.
 
@@ -83,6 +85,7 @@ Requests carry an `X-Role` header with one of `Sales`, `Finance`, `Quality`, `BU
 - `POST /api/duplicates` scores a candidate against customer records and against non-rejected requests of the same type.
 - Scores: exact identifier 100; exact email 95; exact name or alias 90; fuzzy name similarity from 0.70 scaled to at most 85.
 - Scores are heuristic evidence, not probabilities.
+- Duplicate blocking only applies to Customer requests; Vendor, Item and Cost Center have no master dataset to match against (they only match against earlier in-flight requests of the same type).
 - Creating a Customer request (`POST /api/requests`) with a match at score 80 or above returns `409` with the matches. Send the request again with a `duplicateOverride` of at least 10 characters to save it. The approval `resubmit` action does not repeat this check.
 
 ## Consolidation preview
@@ -108,7 +111,7 @@ Nothing is sent to SAP. Only approved requests can be exported (`409` otherwise)
 - `risks`: declining demand, customer concentration, lapsed customers, duplicate master data, overdue requests
 - `opportunities`: accelerating demand, unconverted pipeline, cross-sell
 
-**Forecast models:** the baseline is the historical average. The candidate is a linear trend by ordinary least squares. A backtest compares them on held-out months. A candidate must beat the baseline by more than a 2% tie margin to be selected. The result varies by series. On the current seed, the baseline wins for the all-product view, Product A, Product B and Singapore. The candidate wins for Product C, Thailand, Malaysia, Indonesia and Vietnam. The report states each series' winner and its error.
+**Forecast models:** historical average, linear trend and Holt's smoothing are all evaluated; the winner varies by series. A walk-forward backtest compares the candidate models against the historical average baseline on held-out months. A challenger must beat the baseline by more than a 2% tie margin to be selected (and Holt's smoothing must beat both the baseline and linear trend). The report states each series' evaluated models, winner, and error.
 
 Enquiry and setup signals are shown as pipeline and never counted as demand.
 
@@ -124,7 +127,7 @@ Enquiry and setup signals are shown as pipeline and never counted as demand.
 | `POST /api/requests/:id/action` | `approve`, `reject`, `clarify` or `resubmit`, with `note` where required |
 | `GET /api/requests/:id/sap` | Simulated SAP payload for approved requests |
 | `POST /api/simulate` | Read-only consolidation preview |
-| `POST /api/reset` | Restore the synthetic fixture |
+| `POST /api/reset` | Restore the synthetic fixture (requires `X-Role: Admin`) |
 
 Errors return JSON `{ "error": "..." }` with an HTTP status. Malformed JSON returns `400`.
 
@@ -137,7 +140,7 @@ npm test
 - `tests/backend.test.js` exercises the persistent API: validation, duplicate handling, approvals, role checks, redaction, SAP gating and non-mutating simulation.
 - `tests/analytics.test.js` covers demand totals, growth windows, forecast backtests, risk and opportunity rules, co-purchase and bad-input handling.
 
-The current suite has 41 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
+The current suite has 53 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
 
 ## Project layout
 
