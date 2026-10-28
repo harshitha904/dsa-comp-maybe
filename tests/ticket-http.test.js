@@ -102,3 +102,24 @@ test('hosted HTTP persists initialization and workflow changes before response; 
   await api('/users/priya/notifications', 'priya');
   assert.equal(saves, afterSla, 'unchanged notification polling must not write durable storage');
 });
+
+test('platform-owned JSON helper bypassing Express send still persists every mutation exactly once', async t => {
+  let state = seedData(), saves = 0;
+  const handler = createHandler({
+    loadState: async () => ({ state: structuredClone(state), etag: 'platform-version' }),
+    saveState: async next => { await new Promise(r => setTimeout(r, 5)); state = structuredClone(next); saves++; },
+  });
+  const api = await serve(t, (req, res) => {
+    // Vercel's helper writes directly to the native response, not res.send.
+    res.json = function (body) { this.setHeader('Content-Type', 'application/json'); this.end(JSON.stringify(body)); return this; };
+    return handler(req, res);
+  });
+  await api('/users');
+  assert.equal(saves, 1);
+  const created = await api('/tickets', 'marcus', customer('Platform persistence regression clinic'));
+  assert.equal(saves, 2);
+  assert.equal((await api(`/tickets/${created.ticket.id}`)).record.name, 'Platform persistence regression clinic');
+  await api(`/tickets/${created.ticket.id}/official`, 'priya', {});
+  assert.equal(saves, 3);
+  assert.equal((await api(`/tickets/${created.ticket.id}`)).ticket.status, 'Complete');
+});
