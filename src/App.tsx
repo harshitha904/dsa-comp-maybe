@@ -36,7 +36,7 @@ export default function App() {
      setTheme(next);
      document.documentElement.dataset.theme = next;
      const meta = document.querySelector('meta[name="theme-color"]');
-     if (meta) meta.setAttribute('content', next === 'dark' ? '#101412' : '#f7f7f4');
+     if (meta) meta.setAttribute('content', next === 'dark' ? '#0E0F10' : '#f7f7f4');
     }
    } catch {}
   };
@@ -50,7 +50,7 @@ export default function App() {
   try {
    localStorage.setItem('mg-theme', next);
    const meta = document.querySelector('meta[name="theme-color"]');
-   if (meta) meta.setAttribute('content', next === 'dark' ? '#101412' : '#f7f7f4');
+   if (meta) meta.setAttribute('content', next === 'dark' ? '#0E0F10' : '#f7f7f4');
   } catch {}
  };
  useEffect(() => { const fn = () => { const h = fromHash(); setPage(h.page); if (h.id) setTrackId(h.id); }; addEventListener('hashchange', fn); return () => removeEventListener('hashchange', fn); }, []);
