@@ -113,3 +113,36 @@ return only after persistence, and verify a fresh read retains the changes.
 This preparation did not push commits or deploy a new build. Earlier deployment
 evidence above describes the previous release; the parent release task records
 the final source commit and live verification for the workflow update.
+
+## Workflow release live verification (2026-10-28)
+
+Final source commit `f6339dc2d648d3bb5f5c70096596402f670e9625` was deployed to
+the existing project as `dpl_7267WJjfTuJcUfSMT1uNY9p98GxJ` (READY):
+https://dsa-comp-maybe-6vnxjhhvd-samuels-projects-871fb3f2.vercel.app.
+The stable public alias is https://dsa-comp-maybe.vercel.app. Ordinary HTTP
+requests to this alias succeed without Vercel login. Git integration remains
+unconfigured; this release used the authenticated CLI with explicit team scope.
+
+The management users read initialized the workflow. Users, legacy bootstrap,
+T-1042, regional analytics, the main page, `/legacy.html`, and DTW CSV returned
+HTTP 200. The main page serves the new ticket workflow; the separately built
+legacy entry retains the earlier workspace.
+
+Live mutation verification created synthetic Customer ticket `T-1108`, ID
+`4c15802a-4e73-4d29-96df-b71a085f1c67`. Creation, immediate fresh read, Finance
+credit approval, QA Thailand licence approval, MDM official creation, and a
+subsequent fresh read all returned HTTP 200. The persisted ticket is Complete
+with official record `C-1108`. SAP payload export returned HTTP 200 and explicitly
+reported `simulated: true`; no real SAP write was performed. DTW CSV remained
+valid after the mutations. This synthetic verification record remains in the demo.
+
+T-1042 remains in its initial state: Basic details done; Finance credit terms,
+Thailand licence, and final MDM check pending. It is ready for the user's walkthrough.
+
+The first workflow deployment exposed a platform-specific persistence defect:
+Vercel's existing `res.json` helper could bypass an intercepted Express `res.send`.
+The corrective adapter intercepts both response paths and commits state once
+before acknowledging success. The new platform-response regression test covers
+creation and official completion with fresh reads; the final local suite has 78
+passing tests and the build passes. The successful live sequence above verifies
+the corrected behavior on Vercel, beyond the local tests.
