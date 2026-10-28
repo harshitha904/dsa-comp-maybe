@@ -10,12 +10,25 @@ export function createHandler({ loadState = loadBlobState, saveState = saveBlobS
       const { state, etag } = await loadState();
       const store = memoryStore(state);
       const app = express();
-      // Express initializes response helpers before this middleware executes.
+      // Vercel can supply an own res.json helper that bypasses Express res.send.
+      // Intercept both entry points; a nested json -> send must commit only once.
       app.use((req, res, next) => {
         const sendJson = res.json.bind(res);
-        res.json = function (body) {
-          if (!store.dirty || res.statusCode >= 400) return sendJson(body);
-          saveState(store.all(), etag).then(() => sendJson(body)).catch(error => {
+        const sendBody = res.send.bind(res);
+        let committed = false;
+        let pending = false;
+        const respond = deliver => {
+          if (committed || !store.dirty || res.statusCode >= 400) return deliver();
+          if (pending) return res;
+          pending = true;
+          saveState(store.all(), etag).then(() => {
+            committed = true;
+            deliver();
+          }).catch(error => {
+            committed = true;
+            res.removeHeader('Content-Length');
+            res.removeHeader('ETag');
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
             if (error instanceof BlobPreconditionFailedError) {
               res.statusCode = 409;
               sendJson({ error: 'Data changed while processing this request. Refresh and retry.' });
@@ -27,6 +40,8 @@ export function createHandler({ loadState = loadBlobState, saveState = saveBlobS
           });
           return res;
         };
+        res.json = body => respond(() => sendJson(body));
+        res.send = body => respond(() => sendBody(body));
         next();
       });
       app.use(createApp(store));
