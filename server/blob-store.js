@@ -31,7 +31,7 @@ export function memoryStore(initial) {
   return {
     all: () => structuredClone(state),
     put(collection, item) {
-      state[collection] ??= [];
+      state[collection] ||= [];
       const index = state[collection].findIndex(row => row.id === item.id);
       if (index < 0) state[collection].push(structuredClone(item));
       else state[collection][index] = structuredClone(item);
@@ -41,7 +41,7 @@ export function memoryStore(initial) {
       const before = structuredClone(state), wasDirty = dirty;
       try { return fn(); } catch (error) { state = before; dirty = wasDirty; throw error; }
     },
-    reset() { state = seedData(); dirty = true; },
+    reset() { const workflow = state.workflow; state = seedData(); if (workflow) state.workflow = workflow; dirty = true; },
     get dirty() { return dirty; },
   };
 }

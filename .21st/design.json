@@ -20,16 +20,15 @@
   "design": {
     "colorMode": "light",
     "colors": {
-      "ink": "#20393f",
-      "muted": "#76868a",
-      "teal": "#087f75",
-      "border": "#e1e8e6",
-      "canvas": "#f4f7f6",
-      "sidebar": "#142f34"
+      "ink": "#1F2328",
+      "muted": "#5B6068",
+      "accent": "#0A84FF",
+      "canvas": "#E4E4E1",
+      "surface": "rgba(255,255,255,0.58)"
     },
     "typography": {
-      "body": "DM Sans",
-      "headings": "Manrope"
+      "body": "Inter / system",
+      "headings": "Inter / system"
     },
     "spacing": {},
     "radius": {},
@@ -46,7 +45,12 @@
     "must": [],
     "avoid": []
   },
-  "decisions": [],
+  "decisions": [
+    {
+      "date": "2026-10-28",
+      "decision": "User requested pearl glass order-ticket workflow with parallel action approvals, graphite completed states and one blue active accent."
+    }
+  ],
   "evidence": [],
   "generatedAt": "2026-10-27T16:07:53.225Z"
 }
