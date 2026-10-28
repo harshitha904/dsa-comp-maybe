@@ -4,7 +4,7 @@ import { seedData } from './seed.js';
 export function createStore(path = process.env.DB_PATH || 'data/mastergraph.sqlite') {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS records (collection TEXT NOT NULL, id TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(collection,id));');
-  const collections = ['customers','products','orders','requests','audit','workflow'];
+  const collections = ['customers','products','orders','requests','audit','config','workflow'];
   const insert = db.prepare('INSERT INTO records(collection,id,value) VALUES(?,?,?)');
   const get = db.prepare('SELECT value FROM records WHERE collection=? ORDER BY rowid');
   const store = {

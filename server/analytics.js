@@ -5,6 +5,7 @@
 export const FORECAST_CONFIG = { minTrain: 6, minBacktestPoints: 3, tieMarginPct: 2 };
 export const COPURCHASE_CONFIG = { minSupport: 3, minConfidence: 0.5 };
 const THRESHOLDS = {
+  watchDropPct: 15,
   declinePct: -10, severeDeclinePct: -25, minWindowQuantity: 30,
   growthPct: 15, strongGrowthPct: 30,
   concentrationShare: 0.4, severeConcentrationShare: 0.6,
@@ -54,6 +55,19 @@ const trendPredict = (train) => {
   const { slope, intercept } = linearTrend(train);
   return Math.max(0, intercept + slope * train.length);
 };
+// Holt's linear exponential smoothing: level and trend adapt to recent months, unlike OLS which
+// weights all history equally. Smoothing constants are fixed, never tuned on the scored months.
+export const HOLT = { alpha: 0.5, beta: 0.3 };
+export function holtPredict(train, { alpha, beta } = HOLT) {
+  if (train.length < 2) return Math.max(0, train[0] ?? 0);
+  let level = train[0], trend = train[1] - train[0];
+  for (let i = 1; i < train.length; i++) {
+    const prev = level;
+    level = alpha * train[i] + (1 - alpha) * (level + trend);
+    trend = beta * (level - prev) + (1 - beta) * trend;
+  }
+  return Math.max(0, level + trend);
+}
 
 /**
  * Rolling-origin hold-out backtest. For each origin t >= minTrain the models only see values[0..t-1]
@@ -67,11 +81,12 @@ export function forecastSeries(values, months, nextMonth, config = FORECAST_CONF
     const train = values.slice(0, t);
     points.push({
       month: months[t], actual: values[t],
-      baseline: round(baselinePredict(train)), candidate: round(trendPredict(train)),
+      baseline: round(baselinePredict(train)), candidate: round(trendPredict(train)), holt: round(holtPredict(train)),
     });
   }
   const baselineMae = points.length ? round(mean(points.map((p) => Math.abs(p.actual - p.baseline)))) : null;
   const candidateMae = points.length ? round(mean(points.map((p) => Math.abs(p.actual - p.candidate)))) : null;
+  const holtMae = points.length ? round(mean(points.map((p) => Math.abs(p.actual - p.holt)))) : null;
   const meanActual = points.length ? round(mean(points.map((p) => p.actual))) : null;
   const enough = points.length >= minBacktestPoints;
   const improvementPct = enough && baselineMae > 0 ? round(((baselineMae - candidateMae) / baselineMae) * 100) : null;
@@ -84,19 +99,30 @@ export function forecastSeries(values, months, nextMonth, config = FORECAST_CONF
     else if (improvementPct != null && improvementPct <= -tieMarginPct) winner = 'baseline';
     else winner = 'tie';
   }
+  // Holt is a second challenger under the same rule: it must beat the average by the tie margin,
+  // and must also beat the linear trend outright (ties go to the simpler OLS trend).
+  const holtGain = enough && baselineMae > 0 ? round(((baselineMae - holtMae) / baselineMae) * 100) : null;
+  if (enough && holtGain != null && holtGain >= tieMarginPct && holtMae < candidateMae) winner = 'holt';
   // Ties and thin evidence fall back to the simpler model.
-  const selected = winner === 'candidate' ? 'candidate' : 'baseline';
+  const selected = winner === 'candidate' || winner === 'holt' ? winner : 'baseline';
 
   const trend = linearTrend(values);
   const baselineForecast = round(baselinePredict(values));
   const candidateForecast = round(trendPredict(values));
-  const selectedForecast = selected === 'candidate' ? candidateForecast : baselineForecast;
-  const selectedMae = selected === 'candidate' ? candidateMae : baselineMae;
+  const holtForecast = round(holtPredict(values));
+  const selectedForecast = selected === 'candidate' ? candidateForecast : selected === 'holt' ? holtForecast : baselineForecast;
+  const selectedMae = selected === 'candidate' ? candidateMae : selected === 'holt' ? holtMae : baselineMae;
+  const pct = (mae) => (meanActual > 0 && mae != null ? round((mae / meanActual) * 100) : null);
+  const models = [
+    { id: 'baseline', name: 'Historical average', mae: baselineMae, maePct: pct(baselineMae), forecast: baselineForecast },
+    { id: 'candidate', name: 'Linear trend', mae: candidateMae, maePct: pct(candidateMae), forecast: candidateForecast },
+    { id: 'holt', name: "Holt's smoothing", mae: holtMae, maePct: pct(holtMae), forecast: holtForecast },
+  ];
 
   const caveats = [];
   if (!enough) caveats.push(`Only ${points.length} held-out month(s) available; at least ${minBacktestPoints} are needed to compare models, so the historical average is used.`);
   if (values.length < 24) caveats.push(`Only ${values.length} months of history: seasonality cannot be validated, so neither model includes it.`);
-  if (enough && winner === 'baseline') caveats.push('The trend model did worse than the historical average on held-out months.');
+  if (enough && winner === 'baseline') caveats.push('The trend models did worse than the historical average on held-out months.');
   if (enough && winner === 'tie') caveats.push(`Both models are within ${tieMarginPct}% MAE of each other on held-out months; the simpler historical average is used.`);
 
   return {
@@ -106,10 +132,10 @@ export function forecastSeries(values, months, nextMonth, config = FORECAST_CONF
       minTrain, origins: points.length, points, baselineMae, candidateMae, meanActual,
       baselineMaePct: meanActual > 0 ? round((baselineMae / meanActual) * 100) : null,
       candidateMaePct: meanActual > 0 ? round((candidateMae / meanActual) * 100) : null,
-      improvementPct, winner,
+      improvementPct, winner, holtMae,
     },
     trend: { slopePerMonth: round(trend.slope), r2: round(trend.r2, 2) },
-    baselineForecast, candidateForecast,
+    baselineForecast, candidateForecast, holtForecast, models,
     selected, selectedForecast, selectedMae,
     caveats,
   };
@@ -381,6 +407,14 @@ function buildView(key, productIds, ctx, shared) {
     forecast, maxMonthlyCell: maxCell,
   };
 
+  // Early drop-off warning: customers still ordering, but whose last 3 months fell well below the
+  // 3 before. Customers who already stopped are reported separately as lapsed.
+  view.watchlist = [...custByCountry.values()].flatMap((m) => [...m.values()]).map((e) => {
+    const last3 = sum(e.series.slice(-3)), prior3 = sum(e.series.slice(-6, -3));
+    const c = customerById.get(e.id);
+    return { id: e.id, name: c?.name ?? e.id, country: c?.country ?? null, entity: c?.entity ?? null, last3Quantity: last3, prior3Quantity: prior3, changePct: growthPct(last3, prior3), slopePerMonth: round(linearTrend(e.series).slope), series: e.series };
+  }).filter((w) => w.last3Quantity > 0 && w.changePct != null && w.changePct <= -THRESHOLDS.watchDropPct)
+    .sort((a, b) => a.changePct - b.changePct);
   const full = countryEntries; // retains _cust
   view.risks = [...demandRisks(view, full, ctx), ...shared.opsRisks, ...duplicateRisks(shared.dupGroups, view, ctx)];
   view.opportunities = [...growthOpportunities(view), ...pipelineOpportunities(rows, view, ctx), ...coPurchaseOpportunities(shared.coPurchase, set)];
@@ -391,6 +425,7 @@ function buildView(key, productIds, ctx, shared) {
 }
 
 // ---------- insights ----------
+const modelLabel = (f) => ({ candidate: 'linear trend', holt: "Holt's smoothing" }[f.selected] ?? 'historical average');
 const labelOf = (view, ctx) => (view.productIds.length === ctx.productMeta.size ? 'all products' : view.productIds.map((id) => ctx.productMeta.get(id).name).join(' + '));
 const windowLabel = (months) => `${months[Math.max(0, months.length - 3)]}…${months[months.length - 1]}`;
 const priorLabel = (months) => `${months[Math.max(0, months.length - 6)]}…${months[Math.max(0, months.length - 4)]}`;
@@ -414,7 +449,7 @@ function demandRisks(view, entries, ctx) {
           `${windowLabel(months)}: ${fmt(c.last3Quantity)} units vs ${fmt(c.prior3Quantity)} in ${priorLabel(months)} (${signed(c.growth3mPct)}).`,
           `Latest month ${months[months.length - 1]}: ${fmt(c.latestQuantity)} units (${signed(c.momGrowthPct)} vs prior month).`,
           worst && worst.drop > 0 ? `Largest contributor: ${worst.name}, down ${fmt(worst.drop)} units between the two windows.` : 'No single product explains the drop.',
-          `Next-month ${c.forecast.selected === 'candidate' ? 'trend' : 'historical-average'} forecast: ${fmt(c.forecast.selectedForecast)} units (held-out MAE ${c.forecast.selectedMae != null ? fmt(c.forecast.selectedMae) : 'n/a'}).`,
+          `Next-month ${modelLabel(c.forecast)} forecast: ${fmt(c.forecast.selectedForecast)} units (held-out MAE ${c.forecast.selectedMae != null ? fmt(c.forecast.selectedMae) : 'n/a'}).`,
         ],
         customers: c._cust.filter((x) => sum(x.series.slice(-6, -3)) > sum(x.series.slice(-3))).sort((a, b) => (sum(b.series.slice(-6, -3)) - sum(b.series.slice(-3))) - (sum(a.series.slice(-6, -3)) - sum(a.series.slice(-3)))).slice(0, 5)
           .map((x) => ({ id: x.id, name: nameOf(ctx, x.id), country: c.country, detail: `${fmt(sum(x.series.slice(-6, -3)))} → ${fmt(sum(x.series.slice(-3)))} units` })),
@@ -529,7 +564,7 @@ function growthOpportunities(view) {
       evidence: [
         `${windowLabel(months)}: ${fmt(c.last3Quantity)} units vs ${fmt(c.prior3Quantity)} in ${priorLabel(months)}.`,
         lead && lead.gain > 0 ? `${lead.name} contributes the most growth (+${fmt(lead.gain)} units).` : 'Growth is spread across products.',
-        `Forecast for ${f.horizonMonth}: ${fmt(f.selectedForecast)} units using ${f.selected === 'candidate' ? 'the linear trend' : 'the historical average'} (held-out MAE ${f.selectedMae != null ? fmt(f.selectedMae) : 'n/a'}; ${f.backtest.winner === 'candidate' ? `trend beat the average by ${f.backtest.improvementPct}%` : f.backtest.winner === 'baseline' ? 'trend did not beat the average' : 'no clear winner'}).`,
+        `Forecast for ${f.horizonMonth}: ${fmt(f.selectedForecast)} units using the ${modelLabel(f)} (held-out MAE ${f.selectedMae != null ? fmt(f.selectedMae) : 'n/a'}; ${f.backtest.winner === 'holt' ? 'Holt\'s smoothing beat the average' : f.backtest.winner === 'candidate' ? `trend beat the average by ${f.backtest.improvementPct}%` : f.backtest.winner === 'baseline' ? 'trend did not beat the average' : 'no clear winner'}).`,
       ],
       customers: [], requests: [],
       action: `Check stock and fulfilment capacity for ${lead && lead.gain > 0 ? lead.name : 'leading products'} in ${c.country} and fast-track pending customer setups there.`,

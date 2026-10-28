@@ -20,7 +20,9 @@ export function seedData(now = new Date()) {
     ['Hanoi Healthcare','Vietnam',[55,35,20],0.12],
     ['Da Nang Diagnostics','Vietnam',[40,0,0],0.09]
   ];
-  const customers=specs.map(([name,country],i)=>({id:`c${i+1}`,name,country,identifier:i<2?'SG-NUH-001':`DEMO-${i+1}`,email:i<2?'procurement@nuh.example':`procurement${i+1}@example.test`,aliases:i<2?['NUH','National University Hospital Singapore','National University Hospital']:[]}));
+  // Each entity keys its own accounts into the shared SAP B1, which is how NUH ended up under SPD and QTS.
+  const entityOf=i=>i===0?'SPD':i===1?'QTS':['SPD','QTS','QTG'][i%3];
+  const customers=specs.map(([name,country],i)=>({id:`c${i+1}`,name,country,entity:entityOf(i),identifier:i<2?'SG-NUH-001':`DEMO-${i+1}`,email:i<2?'procurement@nuh.example':`procurement${i+1}@example.test`,aliases:i<2?['NUH','National University Hospital Singapore','National University Hospital']:[]}));
   const products=['A','B','C'].map((p,i)=>({id:`p${i+1}`,name:`Product ${p}`,category:'Medical supplies'}));
   const orders=[];
   const add=(i,p,m,quantity,signal)=>orders.push({id:`o${orders.length+1}`,customerId:customers[i].id,productId:`p${p+1}`,country:customers[i].country,month:new Date(Date.UTC(2025,9+m,1)).toISOString().slice(0,7),quantity,signal});
@@ -39,15 +41,15 @@ export function seedData(now = new Date()) {
   });
   const at=days=>new Date(now.getTime()+days*86400000).toISOString();
   const requests=[
-    {id:'REQ-1001',type:'Customer',name:'Mekong New Clinic',country:'Vietnam',identifier:'DEMO-VN-NEW',email:'new@mekong.example',details:{segment:'Direct account',terms:'Net 30',credit:25000,interest:'Product A'},requester:'Linh Nguyen',status:'Pending',stage:'Sales',approvals:[],createdAt:at(-6),deadline:at(1),priority:3},
-    {id:'REQ-1002',type:'Vendor',name:'Penang Freight Services',country:'Malaysia',identifier:'DEMO-MY-FREIGHT',email:'ops@freight.example',details:{category:'Logistics',terms:'Net 45',bankCountry:'Malaysia',contact:'Aisha Lim',bankAccount:'SYNTHETIC-000123'},requester:'Aisha Lim',status:'Pending',stage:'Quality',approvals:['Finance'],createdAt:at(-12),deadline:at(-3),priority:3},
-    {id:'REQ-1003',type:'Item',name:'Product B sterile kit',country:'Thailand',identifier:'PB-KIT-01',email:'',details:{line:'Product B',uom:'Box',cost:12.5,shelf:24},requester:'Narin Chai',status:'Clarification',stage:'Quality',approvals:[],createdAt:at(-8),deadline:at(3),priority:2},
-    {id:'REQ-1004',type:'Cost Center',name:'Vietnam Operations',country:'Vietnam',identifier:'VN-OPS01',email:'',details:{owner:'Minh Tran',unit:'Operations',budget:250000},requester:'Minh Tran',status:'Pending',stage:'BU Head',approvals:['Finance'],createdAt:at(-4),deadline:at(10),priority:1}
+    {id:'REQ-1001',entity:'SPD',type:'Customer',name:'Mekong New Clinic',country:'Vietnam',identifier:'DEMO-VN-NEW',email:'new@mekong.example',details:{segment:'Direct account',terms:'Net 30',credit:25000,interest:'Product A'},requester:'Linh Nguyen',status:'Pending',stage:'Sales',approvals:[],createdAt:at(-6),deadline:at(1),priority:3},
+    {id:'REQ-1002',entity:'QTG',type:'Vendor',name:'Penang Freight Services',country:'Malaysia',identifier:'DEMO-MY-FREIGHT',email:'ops@freight.example',details:{category:'Logistics',terms:'Net 45',bankCountry:'Malaysia',contact:'Aisha Lim',bankAccount:'SYNTHETIC-000123'},requester:'Aisha Lim',status:'Pending',stage:'Quality',approvals:['Finance'],createdAt:at(-12),deadline:at(-3),priority:3},
+    {id:'REQ-1003',entity:'QTS',type:'Item',name:'Product B sterile kit',country:'Thailand',identifier:'PB-KIT-01',email:'',details:{line:'Product B',uom:'Box',cost:12.5,shelf:24},requester:'Narin Chai',status:'Clarification',stage:'Quality',approvals:[],createdAt:at(-8),deadline:at(3),priority:2},
+    {id:'REQ-1004',entity:'QTG',type:'Cost Center',name:'Vietnam Operations',country:'Vietnam',identifier:'VN-OPS01',email:'',details:{owner:'Minh Tran',unit:'Operations',budget:250000},requester:'Minh Tran',status:'Pending',stage:'BU Head',approvals:['Finance'],createdAt:at(-4),deadline:at(10),priority:1}
   ];
   const audit=requests.flatMap((r,i)=>[
     {id:`AUD-${i}-created`,requestId:r.id,action:'created',actor:'Sales',timestamp:r.createdAt,details:'Synthetic request created'},
     ...r.approvals.map((actor,j)=>({id:`AUD-${i}-${j}`,requestId:r.id,action:'approve',actor,timestamp:at(-2),details:'Synthetic stage approval'})),
     ...(r.status==='Clarification'?[{id:`AUD-${i}-clarify`,requestId:r.id,action:'clarify',actor:r.stage,timestamp:at(-1),details:'Confirm sterile packaging specification and shelf life'}]:[])
   ]);
-  return {customers,products,orders,requests,audit};
+  return {customers,products,orders,requests,audit,config:[]};
 }

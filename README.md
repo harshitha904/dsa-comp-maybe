@@ -64,3 +64,6 @@ Official tickets can export a simulated SAP resource payload. The generic CSV ex
 Repository: [harshitha904/dsa-comp-maybe](https://github.com/harshitha904/dsa-comp-maybe). The existing Vercel project remains `dsa-comp-maybe`; deployment status belongs in [deployment notes](docs/deployment.md). Updating source or running a build does not establish that the hosted application has been updated.
 
 See the [nine-step demo](docs/demo-script.md), [brief-to-code gap analysis](docs/v2-gap-analysis.md), and [production plan](docs/production-plan.md). No full Figma frame set was created: implemented browser states are the current design deliverable. Earlier executive-summary/PDF artifacts describe the historical vision and should not be treated as current implementation evidence.
+
+## Preserved repository work
+The newer repository commits are retained in Git history and in the separately styled `/legacy.html` workspace, linked from the sidebar. It contains the existing email triage, regional view, graph, rules, impact and light/dark theme. The new order-ticket experience is the default at `/`. Their original API/config routes and tests remain supported.

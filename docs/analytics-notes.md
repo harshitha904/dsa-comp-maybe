@@ -20,7 +20,7 @@ views  keyed by product subset: 'all', 'p1', 'p1+p2', … (every non-empty subse
   view { key, productIds, totals, monthly[], byProduct[], countries[], forecast, risks[], opportunities[] }
   totals    { confirmedQuantity, confirmedOrders, activeCustomers, latest/previous quantity, momGrowthPct,
               last3Quantity, prior3Quantity, growth3mPct, excluded{enquiry,setup,orders,quantity} }
-  country   { country, confirmedQuantity, sharePct, rank, intensity(0-1), series[{month,quantity,intensity}], byProduct[], topCustomers[], excluded, forecast, …growth fields }
+  country   { country, confirmedQuantity, sharePct, rank, intensity(0-1), series (number array), byProduct[], topCustomers[], excluded, forecast, …growth fields }
   insight   { id, kind, type, priority, title, summary, countries[], productIds[], metrics[], evidence[], customers[], requests[], action }
 ```
 
