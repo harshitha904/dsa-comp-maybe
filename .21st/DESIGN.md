@@ -1,3 +1,2 @@
-# MasterGraph design
-An enterprise intelligence workspace: dark evergreen navigation, a light mineral canvas, white analytical panels, teal actions and muted amber warnings. DM Sans for interface text, Manrope for headings. Desktop persistent rail becomes bottom navigation on mobile. Evidence is adjacent to decisions. All synthetic-data and simulated-integration boundaries remain visible.
-21st search grounded layout in App Dashboard Layout, Advanced Stats and Line Graph Statistics patterns. Custom components avoid introducing a second component system.
+# Lives Group order tickets
+Pearl glass: pearl grey canvas, soft fixed ambient white and blue-grey blobs, white 58% frosted panels,24px radii,graphite text,one Apple-blue action accent. Completed steps graphite with white checks; pending dashed outlines. Inter/system fonts400/600. Accessible states use text and icons, reduced motion and glass fallback. User explicitly selected this direction on28October2026.

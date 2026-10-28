@@ -12,17 +12,19 @@ export function createHandler({ loadState = loadBlobState, saveState = saveBlobS
       const app = express();
       // Express initializes response helpers before this middleware executes.
       app.use((req, res, next) => {
-        const sendJson = res.json.bind(res);
-        res.json = function (body) {
-          if (!store.dirty || res.statusCode >= 400) return sendJson(body);
-          saveState(store.all(), etag).then(() => sendJson(body)).catch(error => {
+        const sendBody = res.send.bind(res);
+        res.send = function (body) {
+          if (!store.dirty || res.statusCode >= 400) return sendBody(body);
+          saveState(store.all(), etag).then(() => sendBody(body)).catch(error => {
             if (error instanceof BlobPreconditionFailedError) {
               res.statusCode = 409;
-              sendJson({ error: 'Data changed while processing this request. Refresh and retry.' });
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              sendBody(JSON.stringify({ error: 'Data changed while processing this request. Refresh and retry.' }));
             } else {
               console.error('Durable state write failed:', error.name);
               res.statusCode = 503;
-              sendJson({ error: 'Durable storage unavailable. No success was acknowledged; refresh before retrying.' });
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              sendBody(JSON.stringify({ error: 'Durable storage unavailable. No success was acknowledged; refresh before retrying.' }));
             }
           });
           return res;

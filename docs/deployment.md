@@ -87,3 +87,29 @@ Customer request. Synthetic verification records intentionally remain in the dem
 The project API confirms GitHub integration `tancysam/dsa-comp-maybe` and production
 branch `main`. Subsequent pushes use Vercel's connected Git workflow. No secrets,
 local OIDC tokens, `.vercel` mapping, or SQLite files are tracked in Git.
+
+## Repository migration preparation (2026-10-28)
+
+The release repository is `https://github.com/harshitha904/dsa-comp-maybe.git`.
+Remote `main`, `harshitha`, and `ui-redesign` were inspected at
+`a9fc5e0664084951790a8367c765800c27fe57d9`. This main branch contains the
+previous local release commit `3e22a53` and fifteen subsequent commits; preserve
+those changes when preparing the release. No force push is required.
+
+The existing Vercel project and private Blob store are retained. Project identity
+was confirmed using authenticated CLI 65.4.0 with explicit scope
+`samuels-projects-871fb3f2`. Connecting the new GitHub repository failed because
+Vercel could not access it. After this attempt the project API reports no Git
+link, so automatic deployments from Git pushes are currently unconfigured. The
+repository owner must grant the Vercel GitHub integration access before reconnecting
+it. CLI production deployment to this existing project remains available.
+
+Use the existing `.vercel/project.json` mapping and verify project and team before
+deployment. Do not create another project or store. After releasing, initialize
+the lazy workflow migration with a management `/api/users` read carrying the demo
+`X-User-Id` header before browser verification. Confirm successful ticket writes
+return only after persistence, and verify a fresh read retains the changes.
+
+This preparation did not push commits or deploy a new build. Earlier deployment
+evidence above describes the previous release; the parent release task records
+the final source commit and live verification for the workflow update.

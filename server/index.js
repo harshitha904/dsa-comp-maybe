@@ -1,4 +1,5 @@
 import express from 'express';
+import { ticketRouter } from './ticket-routes.js';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -8,7 +9,8 @@ import { ApiError, act, audit, createRequest, duplicates, redact, sapPayload } f
 export function createApp(store) {
   const app=express(); app.use(express.json({limit:'100kb'}));
   const role=req=>req.get('X-Role') || 'Sales';
-  app.get('/api/bootstrap',(req,res)=>res.json(redact(store.all(),role(req))));
+  app.use('/api', ticketRouter(store));
+  app.get('/api/bootstrap',(req,res)=>{const {workflow,...legacy}=store.all(); res.json(redact(legacy,role(req)));});
   app.get('/api/analytics',async(req,res,next)=>{try { const {buildAnalytics}=await import('./analytics.js'); res.json(await buildAnalytics(redact(store.all(),role(req)))); } catch(e){next(e);} });
   app.get('/api/graph',(req,res)=>{const {customers,products,orders}=redact(store.all(),role(req)); res.json({nodes:[...customers.map(c=>({id:c.id,type:'customer',data:c})),...products.map(p=>({id:p.id,type:'product',data:p}))],edges:orders.map(o=>({id:o.id,source:o.customerId,target:o.productId,data:o}))});});
   app.post('/api/duplicates',(req,res)=>{const data=store.all(); const matches=duplicates(req.body ?? {},data.customers,data.requests); const safe=redact(data,role(req)); const byId=new Map([...safe.customers,...safe.requests.map(r=>({id:r.id,name:r.name,country:r.country,identifier:r.identifier,email:r.email,aliases:[]}))].map(c=>[c.id,c])); res.json({matches:matches.map(m=>({...m,customer:byId.get(m.customer.id)}))});});
