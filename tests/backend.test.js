@@ -26,7 +26,7 @@ test('persistent API validates, routes approvals, redacts and simulates safely',
  for(const role of ['Sales','Finance','BU Head']) assert.equal((await call(`/api/requests/${id}/action`,'POST',{action:'approve'},role))[0],200);
  assert.equal((await call(`/api/requests/${id}/sap`,'GET',null,'Sales'))[0],403); assert.equal((await call(`/api/requests/${id}/sap`,'GET',null,'Finance'))[1].simulated,true);
  const before=(await call('/api/bootstrap','GET',null,'Finance'))[1]; const sim=(await call('/api/simulate','POST',{sourceId:'c1',targetId:'c2'}))[1]; assert.equal(sim.after.targetQuantity,sim.before.sourceQuantity+sim.before.targetQuantity); assert.deepEqual((await call('/api/bootstrap','GET',null,'Finance'))[1],before); assert.ok(before.audit.every(a=>!Number.isNaN(Date.parse(a.timestamp))));
- const reopened=createStore(path); assert.equal(reopened.all().requests.find(r=>r.id===id).status,'Approved'); reopened.close(); assert.equal((await call('/api/reset','POST',{}))[0],200); assert.equal(store.all().requests.length,4);
+ const reopened=createStore(path); assert.equal(reopened.all().requests.find(r=>r.id===id).status,'Approved'); reopened.close(); assert.equal((await call('/api/reset','POST',{}))[0],403); assert.equal((await call('/api/reset','POST',{},'Admin'))[0],200); assert.equal(store.all().requests.length,4);
 });
 
 import { seedData } from '../server/seed.js';

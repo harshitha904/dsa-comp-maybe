@@ -4,6 +4,12 @@ Two-page summary for the 2-minute pitch. All prototype data is synthetic; every 
 
 **Live prototype:** https://dsa-comp-maybe-two.vercel.app · **Code:** https://github.com/harshitha904/dsa-comp-maybe (branch `ui-redesign`) · **Demo video:** _add YouTube link_
 
+> [!WARNING]
+> **Audit Flags — Demo Link & URL Inconsistencies (noted as-is, no links invented):**
+> - **Demo video:** The video link above is an unfilled placeholder (`_add YouTube link_`); no recorded demo video has been uploaded.
+> - **Live prototype URL:** Inconsistent across project documentation. This summary lists `https://dsa-comp-maybe-two.vercel.app`, whereas deployment notes (`docs/deployment.md`) cite `https://dsa-comp-maybe.vercel.app` as the production release.
+> - **GitHub repository URL:** Inconsistent across remotes. This link cites the fork `https://github.com/harshitha904/dsa-comp-maybe`, whereas the upstream project repository is `https://github.com/tancysam/dsa-comp-maybe`.
+
 ---
 
 ## Page 1 of 2: The problem and our solution
@@ -21,11 +27,11 @@ Because SPD, QTS and QTG each key records into the same SAP B1, the **same hospi
 
 | Step | What happens | Pain point it removes |
 |---|---|---|
-| **Request** | Pasted emails are sorted into *purchase order*, *enquiry* or *setup request*, with the reasons shown. Only setup requests reach the form. The requester searches first and sees existing matches (e.g. "NUH Singapore, 100%") before creating anything. | Duplicates, incomplete forms, orders mixed with MDM requests |
+| **Request** | Pasted emails are sorted into *purchase order*, *enquiry* or *setup request*, with the reasons shown. Only setup requests reach the form. The requester searches first and sees existing matches (e.g. "NUH Singapore, 100%") before creating anything. Note that duplicate blocking only applies to Customer requests; Vendor, Item and Cost Center have no master dataset to match against (matching only against earlier in-flight requests). | Duplicates, incomplete forms, orders mixed with MDM requests |
 | **Form** | One form per record type with every required field, the approval route shown up front, and Finance-only fields locked. | Missing fields, sensitive data in email |
 | **Approve** | Each approver gets a **Teams card** and approves from there. No reply in 48h → automatic reminder and escalation. Everyone sees a live progress bar and full history. | Waiting in inboxes, no status, no audit trail |
 | **Rules** | The MDM team adds a field, an approval step or a new business unit themselves. In-flight requests keep their route. | Going back to IT for every change |
-| **SAP B1** | After the MDM final check, the record goes to SAP B1 in the Service Layer format (simulated in the prototype). | Manual retyping |
+| **SAP B1** | Final approval marks the request as "Approved, ready for MDM final check and SAP posting" (there is no automated MDM step in the state machine); the record can then be exported in the SAP B1 Service Layer format (simulated in the prototype). | Manual retyping |
 
 ### Why this over the alternatives
 - **Email + Excel template:** free, but it's today's 18-day process.

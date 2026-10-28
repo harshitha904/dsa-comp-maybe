@@ -43,7 +43,7 @@ npm run dev
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | API with file watching on port 3001, and Vite on port 5173 |
-| `npm test` | Runs `node --test tests/*.test.js` (41 tests) |
+| `npm test` | Runs `node --test tests/*.test.js` (53 tests) |
 | `npm run build` | Runs `tsc -b`, then `vite build` into `dist/` |
 | `npm start` | Runs the API on port 3001 (set `PORT` to change it) and serves `dist/` as the UI |
 
@@ -54,9 +54,9 @@ npm run dev
 - **File:** `data/mastergraph.sqlite` in the project root. Set `DB_PATH` to use another file. The `data/` folder is gitignored and created on start.
 - **Structure:** one `records` table with `(collection, id, value)`. Collections are `customers`, `products`, `orders`, `requests` and `audit`. Values are JSON.
 - **First start:** if the table is empty, the server seeds the synthetic fixture from `server/seed.js`. The current seed produces 18 customers, 3 products, 415 orders and 4 requests.
-- **Reset** restores the fixture and deletes all records, including requests and audit entries. Either:
-  - Sidebar **Reset demo data** in the UI, which sends `POST /api/reset` with `X-Role: Admin`.
-  - `POST /api/reset` directly. This endpoint does not check the role.
+- **Reset** restores the fixture and deletes all records, including requests and audit entries.
+  - Requires `X-Role: Admin`. Note that this role check is a demo selector, not authentication.
+  - The UI **Reset demo data** button sends `POST /api/reset` with `X-Role: Admin`. Direct API calls must include `X-Role: Admin` (or receive `403 Forbidden`).
 - **Seed changes do not migrate.** A database file created before a seed change keeps its old records until you reset or delete `data/mastergraph.sqlite`.
 - **Synthetic identifiers:** customer identifiers use `DEMO-n` or the synthetic codes in `seed.js`. Emails use `.example` or `.test` domains.
 
@@ -85,6 +85,7 @@ Requests carry an `X-Role` header with one of `Sales`, `Finance`, `Quality`, `BU
 - `POST /api/duplicates` scores a candidate against customer records and against non-rejected requests of the same type.
 - Scores: exact identifier 100; exact email 95; exact name or alias 90; fuzzy name similarity from 0.70 scaled to at most 85.
 - Scores are heuristic evidence, not probabilities.
+- Duplicate blocking only applies to Customer requests; Vendor, Item and Cost Center have no master dataset to match against (they only match against earlier in-flight requests of the same type).
 - Creating a Customer request (`POST /api/requests`) with a match at score 80 or above returns `409` with the matches. Send the request again with a `duplicateOverride` of at least 10 characters to save it. The approval `resubmit` action does not repeat this check.
 
 ## Consolidation preview
@@ -110,7 +111,7 @@ Nothing is sent to SAP. Only approved requests can be exported (`409` otherwise)
 - `risks`: declining demand, customer concentration, lapsed customers, duplicate master data, overdue requests
 - `opportunities`: accelerating demand, unconverted pipeline, cross-sell
 
-**Forecast models:** the baseline is the historical average. The candidate is a linear trend by ordinary least squares. A backtest compares them on held-out months. A candidate must beat the baseline by more than a 2% tie margin to be selected. The result varies by series. On the current seed, the baseline wins for the all-product view, Product A, Product B and Singapore. The candidate wins for Product C, Thailand, Malaysia, Indonesia and Vietnam. The report states each series' winner and its error.
+**Forecast models:** historical average, linear trend and Holt's smoothing are all evaluated; the winner varies by series. A walk-forward backtest compares the candidate models against the historical average baseline on held-out months. A challenger must beat the baseline by more than a 2% tie margin to be selected (and Holt's smoothing must beat both the baseline and linear trend). The report states each series' evaluated models, winner, and error.
 
 Enquiry and setup signals are shown as pipeline and never counted as demand.
 
@@ -126,7 +127,7 @@ Enquiry and setup signals are shown as pipeline and never counted as demand.
 | `POST /api/requests/:id/action` | `approve`, `reject`, `clarify` or `resubmit`, with `note` where required |
 | `GET /api/requests/:id/sap` | Simulated SAP payload for approved requests |
 | `POST /api/simulate` | Read-only consolidation preview |
-| `POST /api/reset` | Restore the synthetic fixture |
+| `POST /api/reset` | Restore the synthetic fixture (requires `X-Role: Admin`) |
 
 Errors return JSON `{ "error": "..." }` with an HTTP status. Malformed JSON returns `400`.
 
@@ -139,7 +140,7 @@ npm test
 - `tests/backend.test.js` exercises the persistent API: validation, duplicate handling, approvals, role checks, redaction, SAP gating and non-mutating simulation.
 - `tests/analytics.test.js` covers demand totals, growth windows, forecast backtests, risk and opportunity rules, co-purchase and bad-input handling.
 
-The current suite has 41 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
+The current suite has 53 tests. Passing tests show that the implemented logic behaves as specified. They are not a browser test.
 
 ## Project layout
 

@@ -27,7 +27,7 @@ export default function App() {
  const setRole = (r: Role) => { setApiRole(r); setRoleState(r); setVersion(v => v + 1); };
  const openCustomer = (id: string) => { setCustomerId(id); go('graph'); };
  async function reset() {
-  try { await api('/reset', {method:'POST'}); setVersion(v => v + 1); setAbout(false); setToast('Demo data reset'); }
+  try { await api('/reset', {method:'POST', headers:{'X-Role':'Admin'}}); setVersion(v => v + 1); setAbout(false); setToast('Demo data reset'); }
   catch (e) { setToast(errorText(e)); }
  }
  return <div className="app">
@@ -55,7 +55,7 @@ export default function App() {
   {about && <div className="modal-backdrop" onClick={() => setAbout(false)}>
    <div className="modal wide" role="dialog" aria-label="How it works" onClick={e => e.stopPropagation()}>
     <div className="modal-head"><h2>How it works</h2><button className="icon-btn" aria-label="Close" onClick={() => setAbout(false)}><X size={18}/></button></div>
-    <a href="/process-flow.svg" target="_blank" rel="noreferrer" title="Open full size"><img className="flow-img" src="/process-flow.svg" alt="Process flow: request by email or form, sorted, duplicate-checked, one complete form, approvals in Teams with escalation, MDM final check, created in SAP B1 via the Service Layer, and clean records feeding the regional view."/></a>
+    <a href="/process-flow.svg" target="_blank" rel="noreferrer" title="Open full size"><img className="flow-img" src="/process-flow.svg" alt="Process flow: request by email or form, sorted, duplicate-checked, one complete form, approvals in Teams with escalation, approved (ready for MDM final check and SAP posting), created in SAP B1 via the Service Layer, and clean records feeding the regional view."/></a>
     <h3>Not in version 1</h3>
     <ul className="plain">
      <li>Live SAP B1 connection (payload is simulated)</li>

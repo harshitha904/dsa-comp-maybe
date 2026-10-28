@@ -60,7 +60,7 @@ export default function Rules({role, toast}: {role:Role; toast:(m:string)=>void}
       <button className="icon-btn" aria-label="Remove" disabled={route.length === 1} onClick={() => update(c => { c.routes[type].splice(i, 1); })}><X size={15}/></button>
      </>}
     </li>)}
-     <li className="fixed"><span className="n">✓</span><span className="grow">MDM final check → SAP B1</span></li>
+     <li className="fixed"><span className="n">✓</span><span className="grow">Approved, ready for MDM final check and SAP posting</span></li>
     </ol>
     {canEdit && approvers.some(a => !route.includes(a)) && <div className="add-row">
      <select className="input" value="" onChange={e => update(c => { c.routes[type].push(e.target.value as Role); })}>

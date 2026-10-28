@@ -21,7 +21,7 @@ export function createApp(store) {
   app.get('/api/config',(req,res)=>res.json(configOf(store.all())));
   app.put('/api/config',(req,res)=>{if(!['Admin'].includes(role(req))) throw new ApiError(403,'Only the MDM team can change workflow rules'); const config=validateConfig(req.body); store.transaction(()=>store.put('config',config)); res.json(config);});
   app.post('/api/escalations/run',(req,res)=>{const data=store.all(); const found=escalations(data.requests,data.audit,configOf(data)); store.transaction(()=>found.forEach(({request,entry})=>{store.put('requests',request);store.put('audit',entry);})); res.json({escalated:found.map(f=>f.request.id)});});
-  app.post('/api/reset',(req,res)=>{store.reset();res.json({ok:true});});
+  app.post('/api/reset',(req,res)=>{if(role(req)!=='Admin') throw new ApiError(403,'Admin role required to reset data'); store.reset();res.json({ok:true});});
   app.use('/api',(req,res)=>res.status(404).json({error:'API endpoint not found'}));
   app.use(express.static(resolve('dist'))); app.get('/{*path}',(req,res,next)=>res.sendFile(resolve('dist/index.html'),err=>err && next(err)));
   app.use((err,req,res,next)=>{const status=err.status || (err.type==='entity.parse.failed'?400:500); const payload={error:status===500?'Internal server error':err.message}; if(err.matches){const safe=redact(store.all(),role(req)); const map=new Map([...safe.customers,...safe.requests.map(r=>({id:r.id,name:r.name,country:r.country,entity:r.entity,identifier:r.identifier,email:r.email,aliases:[]}))].map(c=>[c.id,c])); payload.matches=err.matches.map(m=>({...m,customer:map.get(m.customer.id)}));} res.status(status).json(payload);});

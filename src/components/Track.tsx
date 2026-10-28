@@ -12,7 +12,7 @@ const canResubmit = (r: Request, role: Role) => (r.status === 'Clarification' ||
 const overdue = (r: Request) => r.status !== 'Approved' && r.status !== 'Rejected' && new Date(r.deadline).getTime() < Date.now();
 const escalated = (r: Request) => r.status === 'Pending' && r.escalatedStage === r.stage;
 function statusPill(r: Request) {
- if (r.status === 'Approved') return <span className="pill green">Approved</span>;
+ if (r.status === 'Approved') return <span className="pill green">Approved, ready for MDM final check and SAP posting</span>;
  if (r.status === 'Rejected') return <span className="pill red">Rejected</span>;
  if (r.status === 'Clarification') return <span className="pill amber">Needs info</span>;
  return <span className="pill blue">With {roleLabel[r.stage as Role] ?? r.stage}</span>;
@@ -85,7 +85,7 @@ function Detail({r, config, audit, role, toast, onChanged}: {r:Request; config:C
   if (roleAt === r.stage) return r.status === 'Pending' ? 'current' : 'blocked';
   return 'todo';
  };
- const waiting = r.status === 'Approved' ? 'Approved. Ready for MDM final check and SAP B1.'
+ const waiting = r.status === 'Approved' ? 'Approved, ready for MDM final check and SAP posting.'
   : r.status === 'Rejected' ? `Rejected by ${roleLabel[r.stage as Role] ?? r.stage}.`
   : r.status === 'Clarification' ? `${roleLabel[r.stage as Role] ?? r.stage} asked the requester for more info.`
   : escalated(r) ? `No reply from ${roleLabel[r.stage as Role]} in ${config.slaHours}h. Escalated to ${roleLabel[r.escalatedTo as Role] ?? r.escalatedTo}.`

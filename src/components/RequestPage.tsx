@@ -46,8 +46,8 @@ Minh Tran`},
 type Triage = {label:'order'|'enquiry'|'setup'|'unclear'; confidence:number; reasons:string[]};
 const triageText: Record<Triage['label'], {title:string; pill:string; note:string}> = {
  setup:{title:'New record setup', pill:'green', note:'Goes to the MDM form below.'},
- order:{title:'Purchase order', pill:'blue', note:'Not a master-data request. It goes to the sales order desk and counts as confirmed demand.'},
- enquiry:{title:'General enquiry', pill:'amber', note:'Logged as pipeline. Kept out of demand and forecasts until it becomes an order.'},
+ order:{title:'Purchase order', pill:'blue', note:'Not a master-data request. Simulated handoff to the sales order desk (nothing is persisted here; does not add to confirmed demand). Enquiries stay out of demand.'},
+ enquiry:{title:'General enquiry', pill:'amber', note:'Simulated handoff (nothing is persisted). Logged as pipeline only; enquiries stay out of demand and forecasts.'},
  unclear:{title:'Not sure', pill:'grey', note:'No clear signals. Choose what it is.'},
 };
 
@@ -186,7 +186,7 @@ export default function RequestPage({role, onCreated, onOpenCustomer, toast}: {r
    </div>
    <aside className="card side">
     <h3>Approval route</h3>
-    <ol className="route">{[...route.map(r => roleLabel[r]), 'MDM final check', 'Created in SAP B1'].map((r, i) => <li key={r}><span>{i + 1}</span>{r}</li>)}</ol>
+    <ol className="route">{[...route.map(r => roleLabel[r]), 'Approved, ready for MDM final check and SAP posting'].map((r, i) => <li key={r}><span>{i + 1}</span>{r}</li>)}</ol>
     <p className="muted small">Each approver gets a Teams card when it’s their turn. No reply in {config.slaHours}h escalates it.</p>
     {fields.some(f => f.sensitive) && <p className="muted small lock-note"><Lock size={12}/>Locked fields are visible to Finance and the MDM team only.{role !== 'Finance' && role !== 'Admin' ? ' You can enter them but not view them later.' : ''}</p>}
    </aside>
